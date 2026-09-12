@@ -1,0 +1,9 @@
+node_modules/
+extension/out/
+extension/.vscode-test/
+parser/build/
+*.exe
+*.o
+*.a
+.DS_Store
+.claude/
