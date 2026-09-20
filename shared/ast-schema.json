@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SystemVerilog AST Schema",
+  "type": "object",
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "filepath": { "type": "string" },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "direction": { "enum": ["input", "output", "inout"] },
+                "width": { "type": "integer" },
+                "line": { "type": "integer" }
+              },
+              "required": ["name", "direction"]
+            }
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "width": { "type": "integer" },
+                "type": { "enum": ["wire", "reg", "logic"] },
+                "line": { "type": "integer" }
+              },
+              "required": ["name"]
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "type": { "enum": ["assign", "always_comb", "always_ff"] },
+                "inputs": { "type": "array", "items": { "type": "string" } },
+                "outputs": { "type": "array", "items": { "type": "string" } },
+                "line": { "type": "integer" },
+                "clk": { "type": "string" },
+                "reset": { "type": "string" }
+              },
+              "required": ["id", "type", "inputs", "outputs"]
+            }
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "module": { "type": "string" },
+                "parameters": { "type": "object" },
+                "connections": { "type": "object" },
+                "line": { "type": "integer" }
+              },
+              "required": ["name", "module"]
+            }
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "default": { "type": ["string", "number", "null"] },
+                "line": { "type": "integer" }
+              },
+              "required": ["name"]
+            }
+          }
+        },
+        "required": ["name"]
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "line": { "type": "integer" },
+          "column": { "type": "integer" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": ["modules"]
+}
