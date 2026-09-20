@@ -431,6 +431,64 @@ endmodule`);
                 }
             };
 
+            const renderDiagramSVG = (module) => {
+                const ports = module.ports || [];
+                const blocks = module.blocks || [];
+                const signals = module.signals || [];
+
+                const boxWidth = 300;
+                const boxHeight = 100 + blocks.length * 30;
+                const portSize = 12;
+
+                // Input ports (left), output ports (right)
+                const inputPorts = ports.filter(p => p.direction === 'input');
+                const outputPorts = ports.filter(p => p.direction === 'output' || p.direction === 'inout');
+
+                return (
+                    <svg width="100%" height="300" viewBox={`0 0 600 300`} style={{border: '1px solid #ddd', borderRadius: '4px', background: '#fafafa'}}>
+                        {/* Module box */}
+                        <rect x="100" y="50" width={boxWidth} height={boxHeight} fill="#f0f0f0" stroke="#667eea" strokeWidth="2" rx="4"/>
+
+                        {/* Module name */}
+                        <text x="250" y="75" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#333">{module.name}</text>
+
+                        {/* Input ports (left side) */}
+                        {inputPorts.map((port, i) => {
+                            const y = 110 + i * 25;
+                            return (
+                                <g key={`in-${i}`}>
+                                    <circle cx="100" cy={y} r={portSize/2} fill="#4CAF50"/>
+                                    <text x="120" y={y + 4} fontSize="11" fill="#333">{port.name}</text>
+                                </g>
+                            );
+                        })}
+
+                        {/* Output ports (right side) */}
+                        {outputPorts.map((port, i) => {
+                            const y = 110 + i * 25;
+                            return (
+                                <g key={`out-${i}`}>
+                                    <circle cx={400} cy={y} r={portSize/2} fill={port.direction === 'inout' ? '#9E9E9E' : '#F44336'}/>
+                                    <text x="360" y={y + 4} textAnchor="end" fontSize="11" fill="#333">{port.name}</text>
+                                </g>
+                            );
+                        })}
+
+                        {/* Logic blocks */}
+                        {blocks.map((block, i) => {
+                            const y = 110 + inputPorts.length * 25 + i * 30;
+                            const color = block.type === 'always_ff' ? '#2196F3' : block.type === 'always_comb' ? '#FF9800' : '#9C27B0';
+                            return (
+                                <g key={`block-${i}`}>
+                                    <rect x="150" y={y - 8} width="200" height="20" fill={color} rx="2" opacity="0.7"/>
+                                    <text x="250" y={y + 5} textAnchor="middle" fontSize="10" fill="white" fontWeight="bold">{block.type}</text>
+                                </g>
+                            );
+                        })}
+                    </svg>
+                );
+            };
+
             const renderDiagramView = () => {
                 if (!result || !result.json) {
                     return <div className="empty">No diagram data</div>;
@@ -452,10 +510,13 @@ endmodule`);
 
                         {modules && modules.length > 0 ? (
                             modules.map((mod, i) => (
-                                <div key={i} className="diagram-item">
-                                    <div className="diagram-item-title">📦 Module: {mod.name || 'unnamed'}</div>
-                                    <div className="diagram-item-content">
-                                        Ports: {mod.ports?.length || 0} | Signals: {mod.signals?.length || 0} | Blocks: {mod.blocks?.length || 0}
+                                <div key={i}>
+                                    <div className="diagram-item-title" style={{padding: '12px 16px', background: '#667eea', color: 'white', marginBottom: '8px'}}>
+                                        📦 Module: {mod.name}
+                                    </div>
+                                    {renderDiagramSVG(mod)}
+                                    <div className="diagram-item" style={{marginTop: '8px', fontSize: '12px'}}>
+                                        <strong>Stats:</strong> {mod.ports?.length || 0} ports • {mod.signals?.length || 0} signals • {mod.blocks?.length || 0} blocks
                                     </div>
                                 </div>
                             ))
