@@ -150,11 +150,17 @@ app.post('/api/parse', async (req, res) => {
     console.log(`[PARSE] Temp file: ${tempFile}`);
 
     // Spawn parser process
-    // Parser executable location: ./parser/build/Release/schematex-parser.exe
-    const parserPath = path.join(__dirname, '..', 'parser', 'build', 'Release', 'schematex-parser.exe');
+    // Try multiple parser paths (macOS/Linux, Windows, build directory)
+    let parserPath = path.join(__dirname, '..', 'parser', 'schematex-parser');
+    if (!fs.existsSync(parserPath)) {
+      parserPath = path.join(__dirname, '..', 'parser', 'schematex-parser.exe');
+    }
+    if (!fs.existsSync(parserPath)) {
+      parserPath = path.join(__dirname, '..', 'parser', 'build', 'Release', 'schematex-parser.exe');
+    }
 
     if (!fs.existsSync(parserPath)) {
-      console.log(`[PARSE] ⚠️ Parser not found at ${parserPath}`);
+      console.log(`[PARSE] ⚠️ Parser not found at any expected path`);
       console.log(`[PARSE] Using mock parser for testing`);
       // Use mock parser for testing
       return mockParse(code, res, tempFile);
