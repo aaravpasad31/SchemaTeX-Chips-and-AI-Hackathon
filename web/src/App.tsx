@@ -31,8 +31,28 @@ const examples: Record<string, { name: string; code: string }> = {
 
 endmodule`,
   },
+  counter_chain: {
+    name: 'Counter Chain (Hierarchical)',
+    code: `module counter_chain (
+  input clk,
+  input reset,
+  output [3:0] out1,
+  output [3:0] out2,
+  output [3:0] out3
+);
+  wire [3:0] cnt1, cnt2, cnt3;
+
+  counter_4bit c1 (.clk(clk), .reset(reset), .count(cnt1));
+  counter_4bit c2 (.clk(clk), .reset(reset), .count(cnt2));
+  counter_4bit c3 (.clk(clk), .reset(reset), .count(cnt3));
+
+  assign out1 = cnt1;
+  assign out2 = cnt2;
+  assign out3 = cnt3;
+endmodule`,
+  },
   hierarchical: {
-    name: 'Hierarchical',
+    name: 'Hierarchical (Multi-Module)',
     code: `module top_level (
     input  wire       clk,
     input  wire [7:0] data_in,
@@ -60,7 +80,7 @@ endmodule`,
 endmodule`,
   },
   mux: {
-    name: 'Combinational',
+    name: 'Combinational (Mux)',
     code: `module mux_4to1 (
     input  wire [1:0] sel,
     input  wire [7:0] a,

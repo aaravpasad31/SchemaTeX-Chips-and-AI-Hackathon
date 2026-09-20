@@ -353,25 +353,27 @@ function transformToELK(module, blockTypes) {
       module.ports.forEach((port) => {
         // Only create edges for critical signals
         if (criticalSignals.some(sig => port.name.toLowerCase().includes(sig))) {
-          // Connect only to first instance to reduce clutter (representative connection)
+          // Connect to ALL instances
           if (containerChildren.length > 0) {
             const signalWidth = port.width || 1;
             const isBus = signalWidth > 1;
             const widthLabel = isBus ? `[${signalWidth - 1}:0]` : '';
             const signalType = detectSignalType(port.name);
 
-            edges.push({
-              id: generateId('edge'),
-              sources: [containerId],
-              targets: [containerChildren[0].id],
-              label: port.name,
-              properties: {
-                width: signalWidth,
-                portName: port.name,
-                isBus: isBus,
-                widthLabel: widthLabel,
-                signalType: signalType,
-              },
+            containerChildren.forEach((child) => {
+              edges.push({
+                id: generateId('edge'),
+                sources: [containerId],
+                targets: [child.id],
+                label: port.name,
+                properties: {
+                  width: signalWidth,
+                  portName: port.name,
+                  isBus: isBus,
+                  widthLabel: widthLabel,
+                  signalType: signalType,
+                },
+              });
             });
           }
         }
