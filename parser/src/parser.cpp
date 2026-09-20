@@ -390,9 +390,11 @@ InstancePtr Parser::parseInstance() {
 
     auto instance = std::make_shared<Instance>(moduleName, instanceName);
 
-    // Parse port connections
+    // Parse port connections (with fix for infinite loop on malformed input)
     if (match(TokenType::LPAREN)) {
         while (!check(TokenType::RPAREN) && !isAtEnd()) {
+            size_t startPos = current_;
+
             // Parse port connection: .portName(signalName)
             if (match(TokenType::DOT)) {
                 if (check(TokenType::IDENTIFIER)) {
@@ -409,6 +411,12 @@ InstancePtr Parser::parseInstance() {
 
             if (!check(TokenType::RPAREN)) {
                 match(TokenType::COMMA);
+            }
+
+            // BUGFIX: If no progress was made in this iteration, advance once to prevent infinite loop
+            // This can occur if the input is malformed (e.g., missing DOT or COMMA between port connections)
+            if (current_ == startPos && !check(TokenType::RPAREN)) {
+                advance();
             }
         }
         match(TokenType::RPAREN);
