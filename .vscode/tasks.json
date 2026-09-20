@@ -1,0 +1,29 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "npm: watch",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"watch"
+			],
+			"cwd": "${workspaceFolder}/extension",
+			"isBackground": true,
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^([^(]+)\\((\\d+),(\\d+)\\): (error|warning) (TS\\d+): (.*)$",
+					"file": 1,
+					"location": 2,
+					"message": 6
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "^npm notice",
+					"endsPattern": "Watching for file changes"
+				}
+			}
+		}
+	]
+}
