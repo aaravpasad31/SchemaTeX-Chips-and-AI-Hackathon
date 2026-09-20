@@ -23,7 +23,7 @@ const os = require('os');
 const ELK = require('elkjs');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const elk = new ELK();
 
 app.use(cors());
@@ -636,44 +636,72 @@ app.post('/api/full-pipeline', async (req, res) => {
     }
 
     if (fs.existsSync(parserPath)) {
-      // Use real parser
+      // Use real parser with 10-second timeout
+      console.log('[PIPELINE] Spawning real parser at:', parserPath);
       parseResult = await new Promise((resolve) => {
         let stdout = '';
         let stderr = '';
         const parser = spawn(parserPath, [tempFile]);
+        console.log('[PIPELINE] Parser spawned, waiting for output...');
+
+        let parserTimedOut = false;
+        const parserTimeout = setTimeout(() => {
+          console.warn('[PIPELINE] ⚠️ Parser timeout (10s), killing process...');
+          parserTimedOut = true;
+          parser.kill('SIGKILL');
+          try { fs.unlinkSync(tempFile); } catch (e) {}
+          resolve(null);  // Fall through to mock parser
+        }, 10000);
 
         parser.stdout.on('data', (data) => {
+          console.log('[PIPELINE] Parser stdout data:', data.length, 'bytes');
           stdout += data.toString();
         });
 
         parser.stderr.on('data', (data) => {
+          console.log('[PIPELINE] Parser stderr:', data.toString().slice(0, 100));
           stderr += data.toString();
         });
 
         parser.on('close', (exitCode) => {
-          try { fs.unlinkSync(tempFile); } catch (e) {}
+          if (!parserTimedOut) {
+            clearTimeout(parserTimeout);
+            console.log('[PIPELINE] Parser closed with code:', exitCode);
+            try { fs.unlinkSync(tempFile); } catch (e) {}
 
-          let json = null;
-          try {
-            if (stdout.trim()) {
-              json = JSON.parse(stdout);
+            let json = null;
+            try {
+              if (stdout.trim()) {
+                console.log('[PIPELINE] Parsing JSON output...');
+                json = JSON.parse(stdout);
+                console.log('[PIPELINE] JSON parsed, modules:', json.modules?.length);
+              } else {
+                console.log('[PIPELINE] No stdout from parser');
+              }
+            } catch (e) {
+              console.error('[PIPELINE] JSON parse failed:', e.message);
+              errors.push(`Parse error: Invalid JSON from parser`);
             }
-          } catch (e) {
-            errors.push(`Parse error: Invalid JSON from parser`);
-          }
 
-          resolve({
-            json,
-            stderr: stderr ? stderr.split('\n').filter(line => line.trim()) : [],
-            exitCode
-          });
+            console.log('[PIPELINE] Resolving parseResult');
+            resolve({
+              json,
+              stderr: stderr ? stderr.split('\n').filter(line => line.trim()) : [],
+              exitCode
+            });
+          }
         });
 
         parser.on('error', (err) => {
+          clearTimeout(parserTimeout);
+          console.error('[PIPELINE] Parser error:', err.message);
           try { fs.unlinkSync(tempFile); } catch (e) {}
           resolve(null);
         });
       });
+      if (!parseResult) {
+        console.log('[PIPELINE] Real parser failed, falling back to mock parser');
+      }
     }
 
     // Fallback to mock parser if real parser not available
@@ -771,15 +799,18 @@ app.post('/api/full-pipeline', async (req, res) => {
     }
 
     // Stage 2: Type Detection
-    console.log('[PIPELINE] Stage 2: Type Detection');
+    console.log('[PIPELINE] Stage 2: Type Detection START');
     const typeDetectionStart = Date.now();
     const blockTypes = {};
 
     modules.forEach((mod) => {
+      console.log('[PIPELINE] Detecting type for module:', mod.name);
       if (mod.blocks) {
         mod.blocks.forEach((block, idx) => {
           blockTypes[idx] = detectBlockType(mod);
         });
+      } else {
+        console.log('[PIPELINE]   No blocks, module is hierarchical');
       }
     });
 
@@ -787,6 +818,7 @@ app.post('/api/full-pipeline', async (req, res) => {
       duration: Date.now() - typeDetectionStart,
       types: blockTypes
     };
+    console.log('[PIPELINE] Stage 2: Type Detection DONE in', stages.typeDetection.duration, 'ms');
 
     // Stage 3: AST Transformation
     console.log('[PIPELINE] Stage 3: AST Transformation');
@@ -799,14 +831,18 @@ app.post('/api/full-pipeline', async (req, res) => {
     };
 
     // Stage 4: ELK Layout
-    console.log('[PIPELINE] Stage 4: ELK Layout');
+    console.log('[PIPELINE] Stage 4: ELK Layout START');
     const layoutStart = Date.now();
     const layoutedGraphs = [];
 
-    for (const graph of elkGraphs) {
+    for (let i = 0; i < elkGraphs.length; i++) {
+      const graph = elkGraphs[i];
+      console.log(`[PIPELINE] Laying out graph ${i}:`, graph.id, '- children:', graph.children?.length || 0);
       const layouted = await performLayout(graph);
+      console.log(`[PIPELINE] Finished layout for graph ${i}`);
       layoutedGraphs.push(layouted);
     }
+    console.log('[PIPELINE] Stage 4: ELK Layout DONE in', Date.now() - layoutStart, 'ms');
 
     stages.layout = {
       duration: Date.now() - layoutStart,
