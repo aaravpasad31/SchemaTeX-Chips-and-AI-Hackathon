@@ -401,7 +401,17 @@ export default function D3Canvas({ graph }: D3CanvasProps) {
         }
       })
 
+      // Group edges by target to offset them
+      const edgesByTarget: Record<string, any[]> = {}
       graph.edges.forEach((edge: any) => {
+        const targetId = edge.targets?.[0] || edge.target
+        if (!edgesByTarget[targetId]) {
+          edgesByTarget[targetId] = []
+        }
+        edgesByTarget[targetId].push(edge)
+      })
+
+      graph.edges.forEach((edge: any, edgeIndex: number) => {
         const sourceId = edge.sources?.[0] || edge.source
         const targetId = edge.targets?.[0] || edge.target
 
@@ -409,7 +419,12 @@ export default function D3Canvas({ graph }: D3CanvasProps) {
         const targetPos = nodePositions[targetId]
 
         if (sourcePos && targetPos) {
-          const midX = (sourcePos.x + targetPos.x) / 2
+          // Offset control point based on edge index to fan out arrows
+          const edgesAtTarget = edgesByTarget[targetId]
+          const edgeCount = edgesAtTarget.length
+          const edgeOffset = edgeIndex < edgeCount ? (edgeIndex - edgeCount / 2) * 20 : 0
+
+          const midX = (sourcePos.x + targetPos.x) / 2 + edgeOffset
           const midY = (sourcePos.y + targetPos.y) / 2 + 40
 
           const pathData = `M ${sourcePos.x} ${sourcePos.y} Q ${midX} ${midY} ${targetPos.x} ${targetPos.y}`
