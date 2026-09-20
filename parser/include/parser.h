@@ -40,7 +40,7 @@ private:
     // Parsing methods
     ModulePtr parseModule();
     PortPtr parsePort();
-    SignalPtr parseSignal();
+    std::vector<SignalPtr> parseSignal();
     InstancePtr parseInstance();
     AssignmentPtr parseAssignment();
     BlockPtr parseBlock();

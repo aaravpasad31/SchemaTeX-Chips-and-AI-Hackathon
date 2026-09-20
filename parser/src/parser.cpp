@@ -80,9 +80,11 @@ ModulePtr Parser::parseModule() {
     while (!isAtEnd() && !check(TokenType::KW_ENDMODULE)) {
         // Try parsing signal declarations
         if (check(TokenType::KW_WIRE) || check(TokenType::KW_REG) || check(TokenType::KW_LOGIC)) {
-            SignalPtr signal = parseSignal();
-            if (signal) {
-                module->signals.push_back(signal);
+            std::vector<SignalPtr> signals = parseSignal();
+            for (const auto& signal : signals) {
+                if (signal) {
+                    module->signals.push_back(signal);
+                }
             }
             continue;
         }
@@ -188,7 +190,9 @@ PortPtr Parser::parsePort() {
     return std::make_shared<Port>(portName, direction, width);
 }
 
-SignalPtr Parser::parseSignal() {
+std::vector<SignalPtr> Parser::parseSignal() {
+    std::vector<SignalPtr> signals;
+
     Signal::Type type = Signal::Type::WIRE;
 
     if (match(TokenType::KW_WIRE)) {
@@ -199,7 +203,7 @@ SignalPtr Parser::parseSignal() {
         type = Signal::Type::LOGIC;
     } else {
         error("Expected signal type (wire, reg, logic)");
-        return nullptr;
+        return signals;
     }
 
     // Parse bit width if present
@@ -220,20 +224,26 @@ SignalPtr Parser::parseSignal() {
         }
     }
 
-    // Get signal name
-    if (!check(TokenType::IDENTIFIER)) {
-        error("Expected signal name");
-        return nullptr;
-    }
+    // Parse signal names (can be comma-separated)
+    do {
+        // Get signal name
+        if (!check(TokenType::IDENTIFIER)) {
+            error("Expected signal name");
+            break;
+        }
 
-    Token nameToken = advance();
-    std::string signalName = nameToken.value;
+        Token nameToken = advance();
+        std::string signalName = nameToken.value;
+        signals.push_back(std::make_shared<Signal>(signalName, type, width));
 
+    } while (match(TokenType::COMMA));
+
+    // Expect semicolon after all signal names
     if (!match(TokenType::SEMICOLON)) {
         error("Expected ';' after signal declaration");
     }
 
-    return std::make_shared<Signal>(signalName, type, width);
+    return signals;
 }
 
 BlockPtr Parser::parseBlock() {
