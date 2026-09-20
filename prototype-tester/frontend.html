@@ -7,6 +7,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -271,6 +272,32 @@
             font-size: 14px;
         }
 
+        #d3-canvas {
+            width: 100%;
+            height: 500px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .d3-node {
+            fill: #667eea;
+            stroke: #5568d3;
+            stroke-width: 2px;
+        }
+
+        .d3-link {
+            stroke: #ccc;
+            stroke-width: 1px;
+            pointer-events: none;
+        }
+
+        .d3-label {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            pointer-events: none;
+        }
+
         @media (prefers-color-scheme: dark) {
             body {
                 background: #1e1e1e;
@@ -375,6 +402,60 @@ endmodule`);
             const [result, setResult] = useState(null);
             const [error, setError] = useState(null);
             const [activeTab, setActiveTab] = useState('json');
+            const d3CanvasRef = useRef(null);
+
+            // Initialize D3 canvas on mount and when diagram tab is active
+            useEffect(() => {
+                if (activeTab === 'diagram' && d3CanvasRef.current && window.d3) {
+                    const canvas = d3CanvasRef.current;
+                    const svg = d3.select('#d3-canvas');
+
+                    // Clear existing content
+                    svg.selectAll('*').remove();
+
+                    // Set SVG dimensions
+                    svg.attr('width', 600).attr('height', 300);
+
+                    // Add test rectangle
+                    svg.append('rect')
+                        .attr('x', 50)
+                        .attr('y', 50)
+                        .attr('width', 200)
+                        .attr('height', 100)
+                        .attr('fill', '#667eea')
+                        .attr('stroke', '#5568d3')
+                        .attr('stroke-width', 2)
+                        .attr('rx', 4)
+                        .attr('class', 'd3-node');
+
+                    // Add test circle
+                    svg.append('circle')
+                        .attr('cx', 450)
+                        .attr('cy', 100)
+                        .attr('r', 40)
+                        .attr('fill', '#FF6B6B')
+                        .attr('stroke', '#FF5252')
+                        .attr('stroke-width', 2)
+                        .attr('class', 'd3-node');
+
+                    // Add labels
+                    svg.append('text')
+                        .attr('x', 150)
+                        .attr('y', 105)
+                        .attr('text-anchor', 'middle')
+                        .attr('fill', 'white')
+                        .attr('class', 'd3-label')
+                        .text('D3 Rectangle');
+
+                    svg.append('text')
+                        .attr('x', 450)
+                        .attr('y', 105)
+                        .attr('text-anchor', 'middle')
+                        .attr('fill', 'white')
+                        .attr('class', 'd3-label')
+                        .text('Circle');
+                }
+            }, [activeTab]);
 
             const handleParse = async () => {
                 if (!code.trim()) {
@@ -507,6 +588,14 @@ endmodule`);
                                 </div>
                             </div>
                         )}
+
+                        {/* D3.js Rendering Canvas */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <div className="diagram-item-title" style={{padding: '8px 16px', background: '#667eea', color: 'white', fontSize: '12px', marginBottom: '8px'}}>
+                                D3.js Diagram Canvas (Ready for T4-T8)
+                            </div>
+                            <svg id="d3-canvas"></svg>
+                        </div>
 
                         {modules && modules.length > 0 ? (
                             modules.map((mod, i) => (
