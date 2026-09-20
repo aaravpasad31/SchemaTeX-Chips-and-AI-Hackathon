@@ -41,7 +41,7 @@ describe('D3StateMachineRenderer (T7)', () => {
 
 		// Create renderer and D3 selection
 		renderer = new D3StateMachineRenderer();
-		g = d3.select(svg).append('g').attr('class', 'd3-main-group') as unknown as d3.Selection<SVGGElement, unknown, HTMLElement, any>;
+		g = d3.select(svg).append('g').attr('class', 'd3-main-group');
 	});
 
 	afterEach(() => {
