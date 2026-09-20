@@ -64,6 +64,74 @@ export interface Block extends ASTNode {
 }
 
 /**
+ * Block as represented in JSON AST (from parser)
+ * Matches the actual parser output format
+ */
+export interface BlockJSON {
+	id: string;
+	type: 'assign' | 'always_comb' | 'always_ff';
+	inputs: string[];
+	outputs: string[];
+	line?: number;
+	clk?: string;
+	reset?: string;
+}
+
+/**
+ * Signal as represented in JSON AST (from parser)
+ * Matches the actual parser output format
+ */
+export interface SignalJSON {
+	name: string;
+	type?: 'wire' | 'reg' | 'logic';
+	width?: number;
+	line?: number;
+	isArray?: boolean;  // For array declarations
+	arraySize?: number;  // Size if array
+}
+
+/**
+ * Instance as represented in JSON AST (from parser)
+ * Matches the actual parser output format
+ */
+export interface InstanceJSON {
+	name: string;
+	module: string;
+	parameters?: Record<string, any>;
+	connections?: Record<string, string>;
+	line?: number;
+}
+
+/**
+ * Port as represented in JSON AST (from parser)
+ * Matches the actual parser output format
+ */
+export interface PortJSON {
+	name: string;
+	direction: 'input' | 'output' | 'inout';
+	width?: number;
+	line?: number;
+}
+
+/**
+ * Module as represented in JSON AST (from parser)
+ * This is the actual format that comes from the C++ parser
+ */
+export interface ModuleJSON {
+	name: string;
+	filepath?: string;
+	ports: PortJSON[];
+	signals: SignalJSON[];
+	blocks: BlockJSON[];
+	instances: InstanceJSON[];
+	parameters?: Array<{
+		name: string;
+		default?: string | number | null;
+		line?: number;
+	}>;
+}
+
+/**
  * Module definition - the root AST node
  */
 export interface Module extends ASTNode {

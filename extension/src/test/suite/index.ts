@@ -15,6 +15,7 @@ export async function run(): Promise<void> {
 		try {
 			// Add test files
 			mocha.addFile(path.resolve(testsRoot, 'parser-bridge.test.ts'));
+			mocha.addFile(path.resolve(testsRoot, '../ast-analyzer/ast-transformer.test.ts'));
 
 			// Run the mocha test suite
 			mocha.run((failures: number) => {

@@ -77,11 +77,14 @@ export interface LayoutEdge {
  */
 export interface ElkGraph {
 	id: string;
+	label?: string;
 	layoutOptions?: Record<string, string | number | boolean>;
 	children?: ElkNode[];
+	nodes?: ElkNode[];  // Alternative property name
 	edges?: ElkEdge[];
 	width?: number;
 	height?: number;
+	[key: string]: any;  // Allow additional properties
 }
 
 /**
@@ -89,15 +92,19 @@ export interface ElkGraph {
  */
 export interface ElkNode {
 	id: string;
-	label?: { text: string };
+	label?: { text: string } | string;
 	width?: number;
 	height?: number;
 	x?: number;
 	y?: number;
+	type?: string;  // Block type for rendering
+	color?: string;  // Fill color
+	shape?: string;  // Node shape
 	layoutOptions?: Record<string, string | number | boolean>;
 	children?: ElkNode[];
 	ports?: ElkPort[];
 	properties?: Record<string, any>;
+	[key: string]: any;  // Allow additional properties
 }
 
 /**
@@ -105,11 +112,13 @@ export interface ElkNode {
  */
 export interface ElkPort {
 	id: string;
+	label?: { text: string } | string;
 	width?: number;
 	height?: number;
 	x?: number;
 	y?: number;
 	properties?: Record<string, any>;
+	[key: string]: any;  // Allow additional properties
 }
 
 /**
@@ -117,13 +126,18 @@ export interface ElkPort {
  */
 export interface ElkEdge {
 	id: string;
-	sources: string[];
-	targets: string[];
-	label?: { text: string };
+	sources?: string[];
+	targets?: string[];
+	source?: string;  // Alternative source property
+	target?: string;  // Alternative target property
+	label?: { text: string } | string;
+	width?: number;  // Bus width for rendering
+	points?: Array<{ x: number; y: number }>;  // Routing points
 	layoutOptions?: Record<string, string | number | boolean>;
 	sections?: Array<{
 		startPoint: { x: number; y: number };
 		endPoint: { x: number; y: number };
 		bendPoints?: Array<{ x: number; y: number }>;
 	}>;
+	[key: string]: any;  // Allow additional properties
 }

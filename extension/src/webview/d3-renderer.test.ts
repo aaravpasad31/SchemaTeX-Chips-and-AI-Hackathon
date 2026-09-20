@@ -351,4 +351,122 @@ describe('D3Renderer', () => {
 			expect(placeholder).to.exist;
 		});
 	});
+
+	describe('T4: Combinational Block Rendering', () => {
+		it('should render combinational logic blocks with proper styling', () => {
+			renderer.initialize(containerId);
+
+			// Create a test graph with a combinational logic block
+			const combinationalGraph: ElkGraph = {
+				id: 'comb-test-graph',
+				children: [
+					{
+						id: 'comb_block_0',
+						label: { text: 'Decoder' },
+						width: 120,
+						height: 80,
+						x: 50,
+						y: 50,
+						properties: {
+							blockType: 'combinational_logic',
+							inputs: ['sel', 'en'],
+							outputs: ['out'],
+						},
+					} as ElkNode,
+				],
+				edges: [],
+			};
+
+			// Render the graph
+			renderer.render(combinationalGraph);
+
+			// Verify the block was rendered
+			const blockElement = document.querySelector('#comb_block_0');
+			expect(blockElement).to.exist;
+			expect(blockElement?.getAttribute('class')).to.include('combinational-block');
+
+			// Verify the block rectangle has correct fill color
+			const rect = blockElement?.querySelector('rect');
+			expect(rect).to.exist;
+			expect(rect?.getAttribute('fill')).to.equal('#f5f5dc');
+			expect(rect?.getAttribute('stroke')).to.equal('black');
+			expect(rect?.getAttribute('stroke-width')).to.equal('2');
+
+			// Verify the module name is displayed
+			const label = blockElement?.querySelector('text');
+			expect(label).to.exist;
+			expect(label?.textContent).to.equal('Decoder');
+
+			// Verify port markers are rendered
+			const portMarkers = blockElement?.querySelectorAll('.d3-port-marker');
+			expect(portMarkers?.length).to.be.greaterThan(0);
+		});
+
+		it('should render input and output port labels correctly', () => {
+			renderer.initialize(containerId);
+
+			// Create a test graph with a combinational logic block
+			const combinationalGraph: ElkGraph = {
+				id: 'comb-test-graph-ports',
+				children: [
+					{
+						id: 'comb_block_1',
+						label: { text: 'MUX' },
+						width: 100,
+						height: 80,
+						x: 100,
+						y: 100,
+						properties: {
+							blockType: 'combinational_logic',
+							inputs: ['a', 'b', 'sel'],
+							outputs: ['y'],
+						},
+					} as ElkNode,
+				],
+				edges: [],
+			};
+
+			// Render the graph
+			renderer.render(combinationalGraph);
+
+			// Verify the block is rendered
+			const blockElement = document.querySelector('#comb_block_1');
+			expect(blockElement).to.exist;
+
+			// Verify input port labels are present
+			const inputLabels = blockElement?.querySelectorAll('.input-port text');
+			expect(inputLabels?.length).to.be.greaterThan(0);
+
+			// Verify output port labels are present
+			const outputLabels = blockElement?.querySelectorAll('.output-port text');
+			expect(outputLabels?.length).to.be.greaterThan(0);
+		});
+
+		it('should handle combinational blocks without properties gracefully', () => {
+			renderer.initialize(containerId);
+
+			// Create a test graph with a minimal combinational logic block
+			const combinationalGraph: ElkGraph = {
+				id: 'comb-test-graph-minimal',
+				children: [
+					{
+						id: 'comb_block_2',
+						label: { text: 'Logic' },
+						width: 100,
+						height: 60,
+						x: 200,
+						y: 200,
+					} as ElkNode,
+				],
+				edges: [],
+			};
+
+			// Should render without errors
+			expect(() => renderer.render(combinationalGraph)).to.not.throw();
+
+			// Verify the block was rendered
+			const blockElement = document.querySelector('#comb_block_2');
+			expect(blockElement).to.exist;
+		});
+	});
 });
