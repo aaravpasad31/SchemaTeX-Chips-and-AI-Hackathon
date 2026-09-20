@@ -202,6 +202,32 @@ function hasMemoryPattern(blocks, signals) {
 }
 
 /**
+ * Detect signal type (clock, reset, data)
+ * Based on signal name and properties
+ */
+function detectSignalType(signalName) {
+  const name = signalName.toLowerCase();
+
+  // Clock signals
+  if (name.includes('clk') || name.includes('clock') || name === 'clk_i' || name === 'clk_o') {
+    return 'clock';
+  }
+
+  // Reset signals
+  if (name.includes('reset') || name.includes('rst') || name === 'reset_n' || name === 'rst_n') {
+    return 'reset';
+  }
+
+  // Power/Ground
+  if (name === 'vcc' || name === 'vdd' || name === 'gnd' || name === 'vss') {
+    return 'power';
+  }
+
+  // Default to data
+  return 'data';
+}
+
+/**
  * AST to ELK Transformation (T2)
  * Converts parsed AST into ELK graph format
  */
@@ -214,47 +240,169 @@ function transformToELK(module, blockTypes) {
     return `${prefix}_${nodeIdCounter++}`;
   }
 
-  // Create port nodes
-  if (module.ports) {
-    module.ports.forEach((port) => {
-      nodes.push({
-        id: generateId('port'),
-        label: port.name,
-        type: 'port',
-        width: 80,
-        height: 40,
-        shape: 'rectangle',
-        color: port.direction === 'input' ? '#c8e6c9' : '#ffcccc',
-        properties: {
-          direction: port.direction,
-          width: port.width || 1,
-        },
-      });
-    });
-  }
+  // Check if this is a hierarchical module (has instances)
+  const isHierarchical = module.instances && module.instances.length > 0;
 
-  // Create instance nodes (for hierarchical modules)
-  if (module.instances) {
+  if (isHierarchical) {
+    // Create hierarchical container node for the parent module
+    const containerChildren = [];
+    const instanceNodeMap = {};
+
+    // Create instance nodes as children of the container with improved sizing
     module.instances.forEach((instance) => {
-      nodes.push({
-        id: generateId('instance'),
+      const instanceId = generateId('instance');
+      instanceNodeMap[instance.name] = instanceId;
+
+      containerChildren.push({
+        id: instanceId,
         label: instance.name || instance.module,
-        type: 'instance',
-        width: 120,
-        height: 80,
-        shape: 'rectangle',
-        color: '#e1f5fe',
+        width: 140,  // Increased from 120 for better label fit
+        height: 90,  // Increased from 80
         properties: {
           moduleName: instance.module,
+          nodeType: 'instance',
+          color: '#e1f5fe',
         },
       });
     });
-  }
 
-  // Create block nodes (logic blocks)
-  if (module.blocks) {
-    module.blocks.forEach((block, idx) => {
-      const blockType = blockTypes ? blockTypes[idx] || BlockType.COMBINATIONAL : BlockType.COMBINATIONAL;
+    // Create port nodes (on the container's perimeter)
+    const portNodes = [];
+    if (module.ports) {
+      module.ports.forEach((port) => {
+        const signalType = detectSignalType(port.name);
+        portNodes.push({
+          id: generateId('port'),
+          label: port.name,
+          width: 80,
+          height: 40,
+          properties: {
+            direction: port.direction,
+            width: port.width || 1,
+            nodeType: 'port',
+            signalType: signalType,
+            color: port.direction === 'input' ? '#c8e6c9' : '#ffcccc',
+          },
+        });
+      });
+    }
+
+    // Calculate container dimensions based on instance count
+    const numInstances = containerChildren.length;
+    const cols = Math.max(2, Math.ceil(Math.sqrt(numInstances)));
+    const rows = Math.ceil(numInstances / cols);
+    const containerWidth = Math.max(500, cols * 200 + 60);
+    const containerHeight = Math.max(350, rows * 150 + 100);
+
+    // Add port constraints metadata to ports
+    if (module.ports) {
+      module.ports.forEach((port) => {
+        const signalType = detectSignalType(port.name);
+        // Determine port side based on direction and signal type
+        if (signalType === 'power') {
+          port.side = 'TOP';
+        } else if (signalType === 'power' && port.name.toLowerCase().includes('gnd')) {
+          port.side = 'BOTTOM';
+        } else if (port.direction === 'input') {
+          port.side = 'LEFT';
+        } else {
+          port.side = 'RIGHT';
+        }
+      });
+    }
+
+    // Create the main hierarchical container node with improved layout options
+    const containerId = generateId('hierarchical');
+    nodes.push({
+      id: containerId,
+      label: module.name || 'Module',
+      children: containerChildren,
+      width: containerWidth,
+      height: containerHeight,
+      layoutOptions: {
+        'elk.algorithm': 'layered',  // Sugiyama hierarchical layout
+        'elk.direction': 'DOWN',
+        'elk.spacing.nodeNode': '80',  // Proper spacing between instances
+        'elk.spacing.edgeNode': '30',
+        'elk.spacing.edgeEdge': '30',
+        'elk.padding': '[50, 50, 50, 50]',
+        'elk.layered.crossingMinimization': 'LAYER_SWEEP',  // Better crossing reduction
+        'elk.layered.nodePlacement.strategy': 'INTERACTIVE',
+        'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST',
+        'elk.edgeRouting': 'SPLINE',  // Smoother edge routing
+        'elk.portConstraints': 'FIXED_SIDE',  // Respect port side constraints
+        'elk.port.side': 'SMART',  // Auto-optimize port placement
+      },
+      properties: {
+        nodeType: 'hierarchical_container',
+        color: 'transparent',
+        ports: module.ports, // Store ports as metadata, not as separate nodes
+      },
+    });
+
+    // NOTE: Do NOT add port nodes to the graph for hierarchical modules
+    // Ports are stored as metadata on the container and rendered as visual elements on the edge
+    // This prevents ELK from positioning them independently
+
+    // Create edges from container to instances
+    // Only connect critical signals (clk, reset) to all instances
+    // Skip connecting every port to every instance (creates spaghetti)
+    if (module.ports) {
+      const criticalSignals = ['clk', 'clock', 'reset', 'rst'];
+
+      module.ports.forEach((port) => {
+        // Only create edges for critical signals
+        if (criticalSignals.some(sig => port.name.toLowerCase().includes(sig))) {
+          // Connect only to first instance to reduce clutter (representative connection)
+          if (containerChildren.length > 0) {
+            const signalWidth = port.width || 1;
+            const isBus = signalWidth > 1;
+            const widthLabel = isBus ? `[${signalWidth - 1}:0]` : '';
+            const signalType = detectSignalType(port.name);
+
+            edges.push({
+              id: generateId('edge'),
+              sources: [containerId],
+              targets: [containerChildren[0].id],
+              label: port.name,
+              properties: {
+                width: signalWidth,
+                portName: port.name,
+                isBus: isBus,
+                widthLabel: widthLabel,
+                signalType: signalType,
+              },
+            });
+          }
+        }
+      });
+    }
+
+    // Skip instance-to-instance edges (creates clutter)
+  } else {
+    // Non-hierarchical module: create port and block nodes normally
+
+    // Create port nodes
+    if (module.ports) {
+      module.ports.forEach((port) => {
+        nodes.push({
+          id: generateId('port'),
+          label: port.name,
+          width: 80,
+          height: 40,
+          properties: {
+            direction: port.direction,
+            width: port.width || 1,
+            nodeType: 'port',
+            color: port.direction === 'input' ? '#c8e6c9' : '#ffcccc',
+          },
+        });
+      });
+    }
+
+    // Create ONE block node for the entire module (pure logic)
+    if (module.blocks && module.blocks.length > 0) {
+      const blockType = blockTypes?.[0] || BlockType.COMBINATIONAL;
 
       let color = '#fff3e0';
       let shape = 'rectangle';
@@ -263,44 +411,33 @@ function transformToELK(module, blockTypes) {
         color = '#bbdefb';
       } else if (blockType === BlockType.STATE_MACHINE) {
         color = '#f8bbd0';
-        shape = 'circle';
+        shape = 'ellipse';
       } else if (blockType === BlockType.MEMORY) {
         color = '#e1bee7';
+      } else if (blockType === BlockType.COMBINATIONAL) {
+        color = '#fff3e0';
       }
 
       nodes.push({
         id: generateId('block'),
-        label: `${blockType}`,
-        type: blockType,
-        width: shape === 'circle' ? 100 : 140,
-        height: shape === 'circle' ? 100 : 60,
-        shape: shape,
+        label: `${module.name || blockType}`,
+        layoutOptions: {
+          'elk.nodeLabels.placement': 'CENTER CENTER',
+        },
+        width: shape === 'ellipse' ? 100 : 140,
+        height: shape === 'ellipse' ? 100 : 80,
         color: color,
         properties: {
-          blockType: block.type,
+          blockType: blockType,
+          nodeType: 'block',
+          shapeType: shape,
         },
       });
-    });
+    }
   }
 
-  // Create edges between signals
-  if (module.signals) {
-    module.signals.forEach((signal) => {
-      // Create edges from ports to blocks based on simple heuristics
-      if (signal.name) {
-        // This is simplified - a real implementation would trace signal connectivity
-        edges.push({
-          id: generateId('edge'),
-          sources: ['unknown'],
-          targets: ['unknown'],
-          label: signal.name,
-          properties: {
-            width: signal.width || 1,
-          },
-        });
-      }
-    });
-  }
+  // Note: Edges for hierarchical modules are created in the hierarchical branch above
+  // For non-hierarchical pure-logic modules, edges are not yet needed
 
   return {
     id: `graph_${module.name || 'main'}`,
