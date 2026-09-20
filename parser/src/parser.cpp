@@ -578,7 +578,7 @@ Token Parser::consume(TokenType type, const std::string& message) {
 }
 
 bool Parser::isAtEnd() const {
-    return current_ >= tokens_.size() || peek().type == TokenType::EOF_TOKEN;
+    return current_ >= tokens_.size();
 }
 
 bool Parser::check(TokenType type) const {
