@@ -1,0 +1,64 @@
+{
+  "modules": [
+    {
+      "name": "counter_4bit",
+      "filepath": "counter_4bit.sv",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1
+        },
+        {
+          "name": "reset",
+          "direction": "input",
+          "width": 1
+        },
+        {
+          "name": "enable",
+          "direction": "input",
+          "width": 1
+        },
+        {
+          "name": "count",
+          "direction": "output",
+          "width": 4
+        }
+      ],
+      "signals": [
+        {
+          "name": "count_next",
+          "type": "logic",
+          "width": 4
+        }
+      ],
+      "blocks": [
+        {
+          "id": "block_0",
+          "type": "always_comb",
+          "inputs": [
+            "reset",
+            "enable",
+            "count"
+          ],
+          "outputs": [
+            "count_next"
+          ]
+        },
+        {
+          "id": "block_1",
+          "type": "always_ff",
+          "inputs": [
+            "count_next"
+          ],
+          "outputs": [
+            "count"
+          ]
+        }
+      ],
+      "instances": [],
+      "parameters": []
+    }
+  ],
+  "errors": []
+}
