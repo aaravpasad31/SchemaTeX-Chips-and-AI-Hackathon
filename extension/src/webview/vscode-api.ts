@@ -15,7 +15,7 @@ export interface ExtensionMessage {
  * Message types sent from webview to extension
  */
 export interface WebviewMessage {
-	type: 'ready' | 'node-selected' | 'node-hovered' | 'zoom-changed' | 'error';
+	type: 'ready' | 'node-selected' | 'node-hovered' | 'zoom-changed' | 'error' | 'load-example';
 	payload?: any;
 }
 
@@ -158,6 +158,16 @@ export class VsCodeApi {
 		this.sendMessage({
 			type: 'error',
 			payload: { error },
+		});
+	}
+
+	/**
+	 * Request to load an example file
+	 */
+	loadExample(filename: string): void {
+		this.sendMessage({
+			type: 'load-example',
+			payload: { filename },
 		});
 	}
 }

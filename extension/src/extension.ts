@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { WebviewProvider } from './webview-provider';
 import { ClaudeIntegration } from './claude-integration';
 import { ParserBridge } from './parser-bridge';
@@ -101,6 +102,48 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Initialize webview provider
 	webviewProvider = new WebviewProvider(context);
+
+	// Handle example loading requests from webview
+	webviewProvider.on('load-example', async (filename: string) => {
+		try {
+			const examplesPath = path.join(context.extensionPath, '..', 'examples', filename);
+			console.log(`[SchemaTeX] Loading example: ${examplesPath}`);
+
+			// Show progress while loading example
+			await vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					title: `Loading example: ${filename}...`,
+					cancellable: false,
+				},
+				async () => {
+					webviewProvider.sendLoading();
+
+					try {
+						// Run the full diagram update pipeline on the example file
+						const result = await diagramManager.updateDiagram(examplesPath);
+
+						if (result.status === 'success' && result.ast && result.layout) {
+							console.log(`[SchemaTeX] Example loaded successfully (${result.elapsedMs}ms)`);
+							webviewProvider.sendDiagramDataWithLayout(result.ast, result.layout);
+						} else {
+							const errorMsg = result.error || 'Unknown error';
+							console.error(`[SchemaTeX] Example loading failed: ${errorMsg}`);
+							webviewProvider.sendError(`Error loading example: ${errorMsg}`);
+						}
+					} catch (error) {
+						const errorMsg = error instanceof Error ? error.message : String(error);
+						console.error(`[SchemaTeX] Error loading example: ${errorMsg}`);
+						webviewProvider.sendError(`Error: ${errorMsg}`);
+					}
+				}
+			);
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : String(error);
+			console.error(`[SchemaTeX] Failed to load example: ${errorMsg}`);
+			webviewProvider.sendError(`Failed to load example: ${errorMsg}`);
+		}
+	});
 
 	// Set up automatic parser re-run on file save
 	if (vscode.window.activeTextEditor) {

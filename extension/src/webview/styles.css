@@ -141,6 +141,45 @@ body {
 	margin: 2px 0;
 }
 
+/* Example selector dropdown */
+.example-selector {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--vscode-editorGroup-border);
+}
+
+.example-selector label {
+	font-weight: 600;
+	color: var(--vscode-editor-foreground);
+	white-space: nowrap;
+}
+
+.example-selector select {
+	flex: 1;
+	padding: 4px 8px;
+	background-color: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	border: 1px solid var(--vscode-editorGroup-border);
+	border-radius: var(--border-radius);
+	font-size: 12px;
+	cursor: pointer;
+	transition: border-color var(--transition);
+	font-family: inherit;
+}
+
+.example-selector select:hover {
+	border-color: var(--vscode-inputOption-activeBackground);
+}
+
+.example-selector select:focus {
+	outline: none;
+	border-color: var(--vscode-focusBorder);
+	box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
 /* SVG styling */
 .diagram-svg {
 	width: 100%;

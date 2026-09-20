@@ -12,6 +12,23 @@ interface DiagramData extends ParserOutput {
 	// ParserOutput includes module and metadata
 }
 
+interface Example {
+	filename: string;
+	name: string;
+	description: string;
+}
+
+const EXAMPLES: Example[] = [
+	{ filename: '1-hierarchical-basic.sv', name: 'Hierarchical', description: 'Nested module hierarchy' },
+	{ filename: '2-combinational-basic.sv', name: 'Combinational', description: 'Pure combinational logic' },
+	{ filename: '3-sequential-basic.sv', name: 'Sequential', description: 'Sequential logic with state' },
+	{ filename: '4-state-machine-basic.sv', name: 'State Machine', description: 'FSM with state transitions' },
+	{ filename: '5-memory-basic.sv', name: 'Memory', description: 'Memory block with RAM/ROM' },
+	{ filename: '6-mixed-basic.sv', name: 'Mixed', description: 'Combined logic and hierarchy' },
+	{ filename: 'counter_4bit.sv', name: '4-bit Counter', description: 'Simple binary counter' },
+	{ filename: 'processor.sv', name: 'Processor', description: 'Complete processor example' },
+];
+
 /**
  * Root React component for the SchemaTeX diagram viewer.
  * Receives diagram data via VS Code message passing API.
@@ -28,6 +45,7 @@ export function App() {
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 	const [showErrorPanel, setShowErrorPanel] = useState(true);
 	const [collapsedModules, setCollapsedModules] = useState<Map<string, boolean>>(new Map());
+	const [selectedExample, setSelectedExample] = useState<string>('1-hierarchical-basic.sv');
 	const [layoutEngine] = useState(() => new LayoutEngine());
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const errorPanelRef = useRef<HTMLDivElement>(null);
@@ -175,6 +193,17 @@ export function App() {
 	}, [layout]);
 
 	/**
+	 * Handle example selection
+	 */
+	const handleExampleSelect = (filename: string) => {
+		setSelectedExample(filename);
+		setLoading(true);
+		setError(null);
+		console.log('Loading example:', filename);
+		VsCodeApi.getInstance().loadExample(filename);
+	};
+
+	/**
 	 * Handle node selection
 	 */
 	const handleNodeClick = (nodeId: string) => {
@@ -255,6 +284,21 @@ export function App() {
 	return (
 		<div className="diagram-container">
 			<div className="diagram-info">
+				<div className="example-selector">
+					<label htmlFor="example-dropdown">Load Example:</label>
+					<select
+						id="example-dropdown"
+						value={selectedExample}
+						onChange={(e) => handleExampleSelect(e.target.value)}
+					>
+						{EXAMPLES.map((example) => (
+							<option key={example.filename} value={example.filename}>
+								{example.name} - {example.description}
+							</option>
+						))}
+					</select>
+				</div>
+
 				{diagramData.metadata?.fileName && (
 					<p>File: {diagramData.metadata.fileName}</p>
 				)}

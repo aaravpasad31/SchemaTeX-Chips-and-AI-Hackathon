@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { EventEmitter } from 'events';
 import { ParserOutput } from './types/ast';
 
 /**
@@ -12,7 +13,7 @@ interface ExtensionMessage {
 }
 
 interface WebviewMessage {
-	type: 'ready' | 'node-selected' | 'node-hovered' | 'zoom-changed' | 'error';
+	type: 'ready' | 'node-selected' | 'node-hovered' | 'zoom-changed' | 'error' | 'load-example';
 	payload?: any;
 }
 
@@ -20,12 +21,13 @@ interface WebviewMessage {
  * Manages the webview panel for displaying diagrams.
  * Handles lifecycle, message passing, and content updates.
  */
-export class WebviewProvider {
+export class WebviewProvider extends EventEmitter {
 	private panel: vscode.WebviewPanel | undefined;
 	private context: vscode.ExtensionContext;
 	private isReady: boolean = false;
 
 	constructor(context: vscode.ExtensionContext) {
+		super();
 		this.context = context;
 	}
 
@@ -369,6 +371,12 @@ export class WebviewProvider {
 				console.error('Webview error:', message.payload?.error);
 				break;
 
+			case 'load-example':
+				console.log('Loading example:', message.payload?.filename);
+				// Trigger example loading through event emitter
+				this.handleLoadExample(message.payload?.filename);
+				break;
+
 			default:
 				console.warn('Unknown message type from webview:', message.type);
 		}
@@ -462,5 +470,13 @@ export class WebviewProvider {
 	 */
 	isVisible(): boolean {
 		return this.panel !== undefined;
+	}
+
+	/**
+	 * Handles a request to load an example file
+	 */
+	private handleLoadExample(filename: string): void {
+		// Emit event for extension to handle
+		this.emit('load-example', filename);
 	}
 }
