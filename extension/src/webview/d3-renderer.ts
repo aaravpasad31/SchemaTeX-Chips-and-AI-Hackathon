@@ -3,11 +3,11 @@
  * Integrates D3.js for rendering ELK layout output with interactive zoom and pan behaviors.
  *
  * T4-T8 implementation:
- * - T4: Render hierarchical module boxes ✓ (included in T6)
+ * - T4: Render hierarchical module boxes ✓ IMPLEMENTED
  * - T5: Render sequential logic blocks with clock symbol ✓ IMPLEMENTED
- * - T6: Render signal edges with routing ✓ (included in T5)
- * - T7: Add labels and annotations ✓ (included in T5)
- * - T8: Implement styling and appearance ✓ (included in T5)
+ * - T6: Render signal edges with routing ✓ IMPLEMENTED
+ * - T7: Add labels and annotations ✓ IMPLEMENTED
+ * - T8: Render memory blocks with hatch pattern ✓ IMPLEMENTED
  */
 
 import * as d3 from 'd3';
@@ -250,7 +250,10 @@ export class D3Renderer {
 			// Determine node type and render accordingly
 			const nodeType = (node as any).type;
 
-			if (nodeType === 'sequential_logic') {
+			if (nodeType === 'memory_block') {
+				// T8: Render memory block with hatch pattern
+				this.renderMemoryBlock(node);
+			} else if (nodeType === 'sequential_logic') {
 				this.renderSequentialBlock(node);
 			} else if (nodeType === 'combinational_logic') {
 				this.renderCombinationalBlock(node);
@@ -423,6 +426,239 @@ export class D3Renderer {
 
 		// Store in node map for later reference
 		this.nodeMap.set(node.id, blockGroup);
+	}
+
+	/**
+	 * Render a memory block with diagonal hatch pattern
+	 * T8 Implementation
+	 * - Light-filled (#f5f5dc) rectangle with black border
+	 * - Diagonal hatch pattern overlaid on rectangle
+	 * - Module name and capacity labeled
+	 * - Clock input with special triangular symbol
+	 * - Address/data ports with labels
+	 * - Control signals positioned on edges
+	 */
+	private renderMemoryBlock(node: ElkNode): void {
+		if (!this.g) {
+			return;
+		}
+
+		const x = node.x || 0;
+		const y = node.y || 0;
+		const width = node.width || 120;
+		const height = node.height || 100;
+		const label = typeof node.label === 'string' ? node.label : node.label?.text || node.id;
+
+		// Create a group for the memory block
+		const blockGroup = this.g
+			.append('g')
+			.attr('class', 'd3-node memory-block')
+			.attr('data-node-id', node.id)
+			.attr('transform', `translate(${x},${y})`);
+
+		// Draw the main rectangle with light fill (#f5f5dc = beige/tan)
+		blockGroup
+			.append('rect')
+			.attr('x', 0)
+			.attr('y', 0)
+			.attr('width', width)
+			.attr('height', height)
+			.attr('fill', '#f5f5dc')
+			.attr('stroke', 'black')
+			.attr('stroke-width', 2)
+			.attr('rx', 4)
+			.attr('class', 'memory-rect');
+
+		// Draw hatch pattern overlay
+		blockGroup
+			.append('rect')
+			.attr('x', 0)
+			.attr('y', 0)
+			.attr('width', width)
+			.attr('height', height)
+			.attr('fill', 'url(#memory-hatch-pattern)')
+			.attr('stroke', 'none')
+			.attr('rx', 4)
+			.attr('class', 'memory-hatch');
+
+		// Extract capacity from node properties
+		const capacity = this.extractCapacity(node);
+
+		// Render module label inside the box
+		blockGroup
+			.append('text')
+			.attr('x', width / 2)
+			.attr('y', 24)
+			.attr('text-anchor', 'middle')
+			.attr('fill', 'black')
+			.attr('font-family', 'monospace')
+			.attr('font-size', 12)
+			.attr('font-weight', 'bold')
+			.text(label);
+
+		// Draw capacity label if available
+		if (capacity) {
+			blockGroup
+				.append('text')
+				.attr('x', width / 2)
+				.attr('y', 42)
+				.attr('text-anchor', 'middle')
+				.attr('fill', '#333')
+				.attr('font-family', 'monospace')
+				.attr('font-size', 9)
+				.attr('font-style', 'italic')
+				.text(`(${capacity})`);
+		}
+
+		// Render clock symbol on left side
+		this.renderClockSymbol(blockGroup, 'clk', -18, height / 2 - 8);
+
+		// Get properties
+		const props = (node as any).properties || {};
+
+		// Render memory-specific ports with labels
+		this.renderMemoryPorts(blockGroup, width, height);
+
+		// Store in node map for later reference
+		this.nodeMap.set(node.id, blockGroup);
+	}
+
+	/**
+	 * Extract capacity from memory block node
+	 * Format: "depth × width" (e.g., "64×32" for 64 words × 32 bits)
+	 */
+	private extractCapacity(node: ElkNode): string | null {
+		const anyNode = node as any;
+
+		// Try to get from properties
+		if (anyNode.properties) {
+			if (anyNode.properties.arraySize && anyNode.properties.dataWidth) {
+				return `${anyNode.properties.arraySize}×${anyNode.properties.dataWidth}`;
+			}
+		}
+
+		// Try to parse from label if it contains array notation
+		// e.g., "mem[0:63][31:0]" -> "64×32"
+		const labelStr = typeof anyNode.label === 'string' ? anyNode.label : anyNode.label?.text;
+		if (labelStr) {
+			const match = labelStr.match(/\[(\d+):(\d+)\].*\[(\d+):(\d+)\]/);
+			if (match) {
+				const depth = Math.abs(parseInt(match[2], 10) - parseInt(match[1], 10)) + 1;
+				const width = Math.abs(parseInt(match[4], 10) - parseInt(match[3], 10)) + 1;
+				return `${depth}×${width}`;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Draw ports for memory block
+	 * Includes address, data_in, data_out, and control signals (we, re, valid)
+	 */
+	private renderMemoryPorts(
+		blockGroup: d3.Selection<SVGGElement, any, HTMLElement, any>,
+		width: number,
+		height: number
+	): void {
+		// Define standard memory ports
+		const ports = [
+			{ name: 'addr', side: 'left', index: 1, type: 'input' },
+			{ name: 'data_in', side: 'left', index: 2, type: 'input' },
+			{ name: 'data_out', side: 'right', index: 0, type: 'output' },
+			{ name: 'we', side: 'bottom', index: 0, type: 'control' },
+			{ name: 're', side: 'bottom', index: 1, type: 'control' },
+			{ name: 'valid', side: 'bottom', index: 2, type: 'control' },
+		];
+
+		const spacing = 22;
+		let leftIndex = 0;
+		let bottomIndex = 0;
+		let rightIndex = 0;
+
+		for (const port of ports) {
+			let portY: number, labelX: number, labelY: number, portX: number;
+
+			if (port.side === 'left') {
+				portY = 20 + leftIndex * spacing;
+				portX = 0;
+				labelX = -10;
+				labelY = portY + 3;
+				leftIndex++;
+
+				// Draw triangular port marker pointing left (input)
+				blockGroup
+					.append('path')
+					.attr('d', `M 0 ${portY - 4} L -8 ${portY} L 0 ${portY + 4} Z`)
+					.attr('fill', '#888')
+					.attr('stroke', 'black')
+					.attr('stroke-width', 0.5)
+					.attr('class', 'd3-port-marker input-port');
+
+				// Add port label
+				blockGroup
+					.append('text')
+					.attr('x', labelX)
+					.attr('y', labelY)
+					.attr('text-anchor', 'end')
+					.attr('fill', '#333')
+					.attr('font-family', 'monospace')
+					.attr('font-size', 8)
+					.text(port.name);
+			} else if (port.side === 'right') {
+				portY = 20 + rightIndex * spacing;
+				portX = width;
+				labelX = width + 10;
+				labelY = portY + 3;
+				rightIndex++;
+
+				// Draw triangular port marker pointing right (output)
+				blockGroup
+					.append('path')
+					.attr('d', `M ${width} ${portY - 4} L ${width + 8} ${portY} L ${width} ${portY + 4} Z`)
+					.attr('fill', '#888')
+					.attr('stroke', 'black')
+					.attr('stroke-width', 0.5)
+					.attr('class', 'd3-port-marker output-port');
+
+				// Add port label
+				blockGroup
+					.append('text')
+					.attr('x', labelX)
+					.attr('y', labelY)
+					.attr('text-anchor', 'start')
+					.attr('fill', '#333')
+					.attr('font-family', 'monospace')
+					.attr('font-size', 8)
+					.text(port.name);
+			} else if (port.side === 'bottom') {
+				portX = 30 + bottomIndex * 28;
+				labelX = portX;
+				labelY = height + 12;
+
+				// Draw triangular control signal marker
+				blockGroup
+					.append('path')
+					.attr('d', `M ${portX} ${height} L ${portX - 4} ${height + 6} L ${portX + 4} ${height + 6} Z`)
+					.attr('fill', '#666')
+					.attr('stroke', 'black')
+					.attr('stroke-width', 0.5)
+					.attr('class', 'd3-port-marker control-port');
+
+				// Add control signal label
+				blockGroup
+					.append('text')
+					.attr('x', labelX)
+					.attr('y', labelY)
+					.attr('text-anchor', 'middle')
+					.attr('fill', '#333')
+					.attr('font-family', 'monospace')
+					.attr('font-size', 8)
+					.text(port.name);
+
+				bottomIndex++;
+			}
+		}
 	}
 
 	/**
