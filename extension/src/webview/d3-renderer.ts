@@ -8,10 +8,18 @@
  * - T6: Render signal edges with routing ✓ IMPLEMENTED
  * - T7: Add labels and annotations ✓ IMPLEMENTED
  * - T8: Render memory blocks with hatch pattern ✓ IMPLEMENTED
+ *
+ * T10 implementation:
+ * - T10: Interactive expand/collapse of hierarchical modules ✓ IMPLEMENTED
  */
 
 import * as d3 from 'd3';
 import { ElkGraph, ElkNode, ElkEdge } from './types/layout';
+
+/**
+ * Callback type for module expansion/collapse events
+ */
+export type ModuleToggleCallback = (moduleId: string, isCollapsed: boolean) => void;
 
 /**
  * D3Renderer class handles D3.js-based rendering of ELK layout graphs
@@ -25,10 +33,55 @@ export class D3Renderer {
 	private currentGraph: ElkGraph | null = null;
 	private nodeMap: Map<string, d3.Selection<SVGGElement, any, HTMLElement, any>> = new Map();
 	private edgeMap: Map<string, d3.Selection<SVGPathElement, any, HTMLElement, any>> = new Map();
+	/** Track which modules are collapsed (key: module ID, value: true if collapsed) */
+	private collapsedModules: Map<string, boolean> = new Map();
+	/** Callback for when a module is toggled (expand/collapse) */
+	private onModuleToggle: ModuleToggleCallback | null = null;
 
 	constructor() {
 		this.nodeMap = new Map();
 		this.edgeMap = new Map();
+		this.collapsedModules = new Map();
+	}
+
+	/**
+	 * Set the callback for when a module is toggled (expand/collapse)
+	 * @param callback - Callback function to invoke on module toggle
+	 */
+	public setModuleToggleCallback(callback: ModuleToggleCallback): void {
+		this.onModuleToggle = callback;
+	}
+
+	/**
+	 * Set the collapsed state of a module
+	 * @param moduleId - ID of the module
+	 * @param isCollapsed - true to collapse, false to expand
+	 */
+	public setModuleCollapsed(moduleId: string, isCollapsed: boolean): void {
+		this.collapsedModules.set(moduleId, isCollapsed);
+	}
+
+	/**
+	 * Check if a module is collapsed
+	 * @param moduleId - ID of the module
+	 */
+	public isModuleCollapsed(moduleId: string): boolean {
+		return this.collapsedModules.get(moduleId) || false;
+	}
+
+	/**
+	 * Get the collapsed state of all modules
+	 */
+	public getCollapsedModules(): Map<string, boolean> {
+		return new Map(this.collapsedModules);
+	}
+
+	/**
+	 * Set the collapsed state of all modules
+	 * @param modules - Map of module IDs to collapsed state
+	 */
+	public setAllCollapsedModules(modules: Map<string, boolean>): void {
+		this.collapsedModules = new Map(modules);
 	}
 
 	/**
@@ -138,10 +191,11 @@ export class D3Renderer {
 		// - Render port nodes and signals
 		// - Add labels and annotations (T7)
 		// - Apply styling (T8)
+		// T10: Interactive expand/collapse
 
 		// Render nodes first (stores them in nodeMap)
 		if (graph.children && graph.children.length > 0) {
-			this.renderNodes(graph.children);
+			this.renderNodes(graph.children, undefined);
 		}
 
 		// Then render edges (which reference the nodes via nodeMap)
@@ -240,13 +294,19 @@ export class D3Renderer {
 	/**
 	 * Render all nodes in the graph
 	 * Handles different node types: combinational logic, sequential logic, state machines, etc.
+	 * T10: Respects collapsed state - hides children of collapsed modules
 	 */
-	private renderNodes(nodes: ElkNode[]): void {
+	private renderNodes(nodes: ElkNode[], parentId?: string): void {
 		if (!this.g) {
 			return;
 		}
 
 		for (const node of nodes) {
+			// Check if parent is collapsed - if so, don't render this node
+			if (parentId && this.collapsedModules.get(parentId)) {
+				continue;
+			}
+
 			// Determine node type and render accordingly
 			const nodeType = (node as any).type;
 
@@ -263,9 +323,9 @@ export class D3Renderer {
 				this.renderGenericBlock(node);
 			}
 
-			// Render child nodes if hierarchical
-			if (node.children && node.children.length > 0) {
-				this.renderNodes(node.children);
+			// Render child nodes if hierarchical and not collapsed
+			if (node.children && node.children.length > 0 && !this.collapsedModules.get(node.id)) {
+				this.renderNodes(node.children, node.id);
 			}
 		}
 	}
@@ -890,7 +950,7 @@ export class D3Renderer {
 			.attr('transform', `translate(${x},${y})`);
 
 		// Draw rectangle
-		blockGroup
+		const rect = blockGroup
 			.append('rect')
 			.attr('x', 0)
 			.attr('y', 0)
@@ -900,6 +960,45 @@ export class D3Renderer {
 			.attr('stroke', 'black')
 			.attr('stroke-width', 1)
 			.attr('rx', 2);
+
+		// Check if this is a hierarchical container
+		const isHierarchical = nodeAny.type === 'hierarchical_container' || (node.children && node.children.length > 0);
+
+		// If hierarchical, add click handler and hover effects
+		if (isHierarchical) {
+			rect.style('cursor', 'pointer');
+
+			// Add hover effects
+			blockGroup.on('mouseenter', () => {
+				rect.attr('stroke-width', 2)
+					.attr('fill-opacity', 0.8);
+			});
+
+			blockGroup.on('mouseleave', () => {
+				rect.attr('stroke-width', 1)
+					.attr('fill-opacity', 1);
+			});
+
+			// Add click handler for toggling collapse/expand
+			blockGroup.on('click', (event: MouseEvent) => {
+				event.stopPropagation();
+
+				// Toggle the collapsed state
+				const currentState = this.collapsedModules.get(node.id) || false;
+				const newState = !currentState;
+				this.collapsedModules.set(node.id, newState);
+
+				// Call the callback if set
+				if (this.onModuleToggle) {
+					this.onModuleToggle(node.id, newState);
+				}
+
+				console.log(`Module ${node.id} ${newState ? 'collapsed' : 'expanded'}`);
+			});
+
+			// Mark this rectangle as a hierarchical container for styling
+			rect.attr('class', 'hierarchical-container-rect');
+		}
 
 		// Add label
 		blockGroup
@@ -920,6 +1019,7 @@ export class D3Renderer {
 	/**
 	 * Render edges (signal connections) with width labels
 	 * T4: Signal connections shown as black lines with bus width labels
+	 * T10: Skip edges connected to hidden nodes (from collapsed modules)
 	 */
 	private renderEdges(edges: ElkEdge[]): void {
 		if (!this.g) {
@@ -932,6 +1032,12 @@ export class D3Renderer {
 			const targetId = edge.targets?.[0];
 
 			if (!sourceId || !targetId) {
+				continue;
+			}
+
+			// T10: Skip edges if source or target nodes are not rendered
+			// (i.e., they're in a collapsed module)
+			if (!this.nodeMap.has(sourceId) || !this.nodeMap.has(targetId)) {
 				continue;
 			}
 

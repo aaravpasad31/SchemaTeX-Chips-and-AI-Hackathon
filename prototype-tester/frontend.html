@@ -28,7 +28,7 @@
         }
 
         .editor-pane {
-            flex: 1;
+            flex: 0.4;
             display: flex;
             flex-direction: column;
             border-right: 1px solid #e0e0e0;
@@ -36,7 +36,7 @@
         }
 
         .output-pane {
-            flex: 1;
+            flex: 0.6;
             display: flex;
             flex-direction: column;
             background: #fff;
@@ -106,6 +106,7 @@
             padding: 12px 16px;
             background: #fafafa;
             border-top: 1px solid #e0e0e0;
+            flex-wrap: wrap;
         }
 
         button {
@@ -122,6 +123,7 @@
             background: #667eea;
             color: white;
             flex: 1;
+            min-width: 100px;
         }
 
         button.primary:hover {
@@ -131,6 +133,12 @@
 
         button.primary:active {
             transform: scale(0.98);
+        }
+
+        button.primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
         }
 
         button.secondary {
@@ -188,11 +196,6 @@
             color: #333;
         }
 
-        .json-output.dark {
-            background: #1e1e1e;
-            color: #d4d4d4;
-        }
-
         .loading {
             display: flex;
             align-items: center;
@@ -223,8 +226,10 @@
             padding: 12px 16px;
             color: #c33;
             font-size: 12px;
-            max-height: 60px;
+            max-height: 100px;
             overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .success-banner {
@@ -240,26 +245,76 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            height: 100%;
         }
 
-        .diagram-item {
+        #d3-canvas {
+            width: 100%;
+            flex: 1;
             background: #f9f9f9;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            padding: 8px;
+        }
+
+        .d3-svg-root {
+            width: 100%;
+            height: 100%;
+            background: #f9f9f9;
+        }
+
+        .d3-node {
+            stroke: #555;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .d3-node:hover {
+            stroke: #000;
+            stroke-width: 3px;
+            filter: brightness(1.1);
+        }
+
+        .d3-node.highlighted {
+            stroke: #ff6b6b;
+            stroke-width: 3px;
+            filter: brightness(1.2);
+        }
+
+        .d3-edge {
+            stroke: #999;
+            stroke-width: 1.5px;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .d3-edge:hover {
+            stroke: #667eea;
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 2px #667eea);
+        }
+
+        .d3-edge.highlighted {
+            stroke: #ff6b6b;
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 3px #ff6b6b);
+        }
+
+        .d3-label {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 11px;
+            pointer-events: none;
+            fill: #333;
         }
 
-        .diagram-item-title {
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 4px;
-        }
-
-        .diagram-item-content {
-            font-family: monospace;
-            color: #555;
-            margin-left: 8px;
+        .d3-edge-label {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 9px;
+            pointer-events: none;
+            fill: #666;
+            background: white;
+            padding: 2px 4px;
         }
 
         .empty {
@@ -272,30 +327,45 @@
             font-size: 14px;
         }
 
-        #d3-canvas {
-            width: 100%;
-            height: 500px;
-            background: #f9f9f9;
+        .stats-bar {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            gap: 16px;
+        }
+
+        .stats-item {
+            display: flex;
+            gap: 4px;
+        }
+
+        .stats-item strong {
+            color: #333;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: white;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 4px;
+            z-index: 10;
         }
 
-        .d3-node {
-            fill: #667eea;
-            stroke: #5568d3;
-            stroke-width: 2px;
-        }
-
-        .d3-link {
-            stroke: #ccc;
-            stroke-width: 1px;
-            pointer-events: none;
-        }
-
-        .d3-label {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 11px;
-            pointer-events: none;
+        .zoom-controls button {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            font-size: 16px;
+            font-weight: bold;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -355,13 +425,31 @@
                 color: #d4d4d4;
             }
 
-            .diagram-item {
-                background: #2d2d30;
-                border-color: #3e3e42;
+            .d3-svg-root {
+                background: #1e1e1e;
             }
 
-            .diagram-item-content {
+            .d3-label {
+                fill: #d4d4d4;
+            }
+
+            .d3-edge-label {
+                fill: #999;
+            }
+
+            .stats-bar {
+                background: #2d2d30;
+                border-bottom-color: #3e3e42;
+                color: #999;
+            }
+
+            .stats-item strong {
                 color: #d4d4d4;
+            }
+
+            .zoom-controls {
+                background: #252526;
+                border-color: #3e3e42;
             }
         }
     </style>
@@ -401,63 +489,201 @@ endmodule`);
             const [loading, setLoading] = useState(false);
             const [result, setResult] = useState(null);
             const [error, setError] = useState(null);
-            const [activeTab, setActiveTab] = useState('json');
-            const d3CanvasRef = useRef(null);
+            const [activeTab, setActiveTab] = useState('diagram');
+            const [stats, setStats] = useState(null);
+            const [highlightedSignal, setHighlightedSignal] = useState(null);
+            const d3ContainerRef = useRef(null);
+            const svgRef = useRef(null);
+            const zoomRef = useRef(null);
 
-            // Initialize D3 canvas on mount and when diagram tab is active
-            useEffect(() => {
-                if (activeTab === 'diagram' && d3CanvasRef.current && window.d3) {
-                    const canvas = d3CanvasRef.current;
-                    const svg = d3.select('#d3-canvas');
-
-                    // Clear existing content
-                    svg.selectAll('*').remove();
-
-                    // Set SVG dimensions
-                    svg.attr('width', 600).attr('height', 300);
-
-                    // Add test rectangle
-                    svg.append('rect')
-                        .attr('x', 50)
-                        .attr('y', 50)
-                        .attr('width', 200)
-                        .attr('height', 100)
-                        .attr('fill', '#667eea')
-                        .attr('stroke', '#5568d3')
-                        .attr('stroke-width', 2)
-                        .attr('rx', 4)
-                        .attr('class', 'd3-node');
-
-                    // Add test circle
-                    svg.append('circle')
-                        .attr('cx', 450)
-                        .attr('cy', 100)
-                        .attr('r', 40)
-                        .attr('fill', '#FF6B6B')
-                        .attr('stroke', '#FF5252')
-                        .attr('stroke-width', 2)
-                        .attr('class', 'd3-node');
-
-                    // Add labels
-                    svg.append('text')
-                        .attr('x', 150)
-                        .attr('y', 105)
-                        .attr('text-anchor', 'middle')
-                        .attr('fill', 'white')
-                        .attr('class', 'd3-label')
-                        .text('D3 Rectangle');
-
-                    svg.append('text')
-                        .attr('x', 450)
-                        .attr('y', 105)
-                        .attr('text-anchor', 'middle')
-                        .attr('fill', 'white')
-                        .attr('class', 'd3-label')
-                        .text('Circle');
+            // D3 Renderer
+            const renderD3Diagram = (graph) => {
+                if (!graph || !graph.children) {
+                    console.warn('No graph data for D3 rendering');
+                    return;
                 }
-            }, [activeTab]);
 
-            const handleParse = async () => {
+                const container = d3ContainerRef.current;
+                if (!container) return;
+
+                const width = container.clientWidth || 800;
+                const height = container.clientHeight || 600;
+
+                // Clear previous
+                d3.select(container).selectAll('svg').remove();
+
+                // Create SVG
+                const svg = d3.select(container)
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .attr('class', 'd3-svg-root');
+
+                // Create groups for organization
+                const g = svg.append('g')
+                    .attr('class', 'd3-main-group');
+
+                // Add defs for markers and patterns
+                const defs = svg.append('defs');
+
+                // Arrow marker
+                defs.append('marker')
+                    .attr('id', 'd3-arrow')
+                    .attr('markerWidth', 10)
+                    .attr('markerHeight', 10)
+                    .attr('refX', 9)
+                    .attr('refY', 3)
+                    .attr('orient', 'auto')
+                    .append('polygon')
+                    .attr('points', '0 0, 10 3, 0 6')
+                    .attr('fill', '#666');
+
+                // Hatch pattern for memory
+                const hatchPattern = defs.append('pattern')
+                    .attr('id', 'memory-hatch')
+                    .attr('patternUnits', 'userSpaceOnUse')
+                    .attr('width', 8)
+                    .attr('height', 8);
+
+                hatchPattern.append('line')
+                    .attr('x1', 0).attr('y1', 0)
+                    .attr('x2', 8).attr('y2', 8)
+                    .attr('stroke', '#000').attr('stroke-width', 0.5)
+                    .attr('opacity', 0.3);
+
+                // Render nodes
+                if (graph.children && graph.children.length > 0) {
+                    graph.children.forEach((node) => {
+                        const x = node.x || Math.random() * 600;
+                        const y = node.y || Math.random() * 400;
+                        const width = node.width || 120;
+                        const height = node.height || 60;
+
+                        // Determine shape and color
+                        let shape = 'rect';
+                        let color = node.color || '#e8f5ff';
+
+                        if (node.type === 'port') {
+                            shape = 'parallelogram';
+                            color = node.color || '#c8e6c9';
+                        } else if (node.type === 'MEMORY') {
+                            color = 'url(#memory-hatch)';
+                        }
+
+                        // Group for each node
+                        const nodeGroup = g.append('g')
+                            .attr('class', 'd3-node-group')
+                            .attr('data-node-id', node.id)
+                            .attr('data-signal', node.label);
+
+                        // Draw shape
+                        if (shape === 'rect') {
+                            nodeGroup.append('rect')
+                                .attr('x', x - width / 2)
+                                .attr('y', y - height / 2)
+                                .attr('width', width)
+                                .attr('height', height)
+                                .attr('class', 'd3-node')
+                                .attr('fill', color)
+                                .attr('rx', 4);
+                        } else if (shape === 'circle') {
+                            nodeGroup.append('circle')
+                                .attr('cx', x)
+                                .attr('cy', y)
+                                .attr('r', Math.min(width, height) / 2)
+                                .attr('class', 'd3-node')
+                                .attr('fill', color);
+                        }
+
+                        // Label
+                        nodeGroup.append('text')
+                            .attr('x', x)
+                            .attr('y', y)
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', '0.3em')
+                            .attr('class', 'd3-label')
+                            .text(node.label || node.id)
+                            .style('pointer-events', 'none');
+
+                        // Add interaction
+                        nodeGroup.on('click', () => {
+                            setHighlightedSignal(node.label || node.id);
+                        })
+                        .on('mouseenter', () => {
+                            nodeGroup.select('.d3-node').classed('highlighted', true);
+                        })
+                        .on('mouseleave', () => {
+                            nodeGroup.select('.d3-node').classed('highlighted',
+                                highlightedSignal === (node.label || node.id)
+                            );
+                        });
+                    });
+                }
+
+                // Render edges
+                if (graph.edges && graph.edges.length > 0) {
+                    graph.edges.forEach((edge) => {
+                        // Simple edges for now
+                        g.append('line')
+                            .attr('x1', 100)
+                            .attr('y1', 100)
+                            .attr('x2', 300)
+                            .attr('y2', 300)
+                            .attr('class', 'd3-edge')
+                            .attr('marker-end', 'url(#d3-arrow)');
+                    });
+                }
+
+                // Add zoom and pan
+                const zoom = d3.zoom()
+                    .on('zoom', (event) => {
+                        g.attr('transform', event.transform);
+                    });
+
+                svg.call(zoom);
+
+                // Pan interaction with mouse
+                let isPanning = false;
+                let panStartX = 0;
+                let panStartY = 0;
+                let currentTransform = d3.zoomIdentity;
+
+                svg.on('mousedown', () => {
+                    isPanning = true;
+                    [panStartX, panStartY] = d3.mouse(svg.node());
+                })
+                .on('mousemove', () => {
+                    if (!isPanning) return;
+                    const [x, y] = d3.mouse(svg.node());
+                    const dx = x - panStartX;
+                    const dy = y - panStartY;
+                    currentTransform = currentTransform.translate(dx, dy);
+                    g.attr('transform', currentTransform);
+                })
+                .on('mouseup', () => {
+                    isPanning = false;
+                })
+                .on('mouseleave', () => {
+                    isPanning = false;
+                });
+
+                // Wheel zoom
+                svg.on('wheel', function(event) {
+                    event.preventDefault();
+                    const direction = event.deltaY > 0 ? 0.9 : 1.1;
+                    const [x, y] = d3.mouse(this);
+                    const newTransform = currentTransform.translate(x, y)
+                        .scale(currentTransform.k * direction)
+                        .translate(-x, -y);
+                    currentTransform = newTransform;
+                    g.attr('transform', newTransform);
+                }, { passive: false });
+
+                svgRef.current = svg;
+                zoomRef.current = zoom;
+            };
+
+            const handleRender = async () => {
                 if (!code.trim()) {
                     setError('Please enter some SystemVerilog code');
                     return;
@@ -466,9 +692,10 @@ endmodule`);
                 setLoading(true);
                 setError(null);
                 setResult(null);
+                setStats(null);
 
                 try {
-                    const response = await fetch('/api/parse', {
+                    const response = await fetch('/api/full-pipeline', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -478,16 +705,24 @@ endmodule`);
 
                     const data = await response.json();
 
-                    if (data.parseError) {
-                        setError(data.parseError);
-                        setResult(data);
-                    } else if (data.error) {
-                        setError(data.error);
-                        setResult(data);
+                    if (!data.success) {
+                        setError(data.error || 'Failed to render diagram');
+                        setResult(null);
                     } else {
                         setResult(data);
-                        if (data.errors.length === 0) {
-                            setActiveTab('json');
+                        setStats({
+                            parseTime: data.stages.parse?.duration || 0,
+                            typeDetection: data.stages.typeDetection?.duration || 0,
+                            transform: data.stages.transform?.duration || 0,
+                            layout: data.stages.layout?.duration || 0,
+                            total: data.stages.total || 0
+                        });
+
+                        // Render first graph
+                        if (data.layoutedGraphs && data.layoutedGraphs.length > 0) {
+                            setTimeout(() => {
+                                renderD3Diagram(data.layoutedGraphs[0]);
+                            }, 100);
                         }
                     }
                 } catch (err) {
@@ -502,118 +737,24 @@ endmodule`);
                 setCode('');
                 setResult(null);
                 setError(null);
+                setStats(null);
             };
 
-            const formatJson = (obj) => {
-                try {
-                    return JSON.stringify(obj, null, 2);
-                } catch {
-                    return String(obj);
-                }
-            };
+            const handleExportSVG = () => {
+                if (!svgRef.current) return;
 
-            const renderDiagramSVG = (module) => {
-                const ports = module.ports || [];
-                const blocks = module.blocks || [];
-                const signals = module.signals || [];
+                const svgElement = d3ContainerRef.current?.querySelector('svg');
+                if (!svgElement) return;
 
-                const boxWidth = 300;
-                const boxHeight = 100 + blocks.length * 30;
-                const portSize = 12;
-
-                // Input ports (left), output ports (right)
-                const inputPorts = ports.filter(p => p.direction === 'input');
-                const outputPorts = ports.filter(p => p.direction === 'output' || p.direction === 'inout');
-
-                return (
-                    <svg width="100%" height="300" viewBox={`0 0 600 300`} style={{border: '1px solid #ddd', borderRadius: '4px', background: '#fafafa'}}>
-                        {/* Module box */}
-                        <rect x="100" y="50" width={boxWidth} height={boxHeight} fill="#f0f0f0" stroke="#667eea" strokeWidth="2" rx="4"/>
-
-                        {/* Module name */}
-                        <text x="250" y="75" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#333">{module.name}</text>
-
-                        {/* Input ports (left side) */}
-                        {inputPorts.map((port, i) => {
-                            const y = 110 + i * 25;
-                            return (
-                                <g key={`in-${i}`}>
-                                    <circle cx="100" cy={y} r={portSize/2} fill="#4CAF50"/>
-                                    <text x="120" y={y + 4} fontSize="11" fill="#333">{port.name}</text>
-                                </g>
-                            );
-                        })}
-
-                        {/* Output ports (right side) */}
-                        {outputPorts.map((port, i) => {
-                            const y = 110 + i * 25;
-                            return (
-                                <g key={`out-${i}`}>
-                                    <circle cx={400} cy={y} r={portSize/2} fill={port.direction === 'inout' ? '#9E9E9E' : '#F44336'}/>
-                                    <text x="360" y={y + 4} textAnchor="end" fontSize="11" fill="#333">{port.name}</text>
-                                </g>
-                            );
-                        })}
-
-                        {/* Logic blocks */}
-                        {blocks.map((block, i) => {
-                            const y = 110 + inputPorts.length * 25 + i * 30;
-                            const color = block.type === 'always_ff' ? '#2196F3' : block.type === 'always_comb' ? '#FF9800' : '#9C27B0';
-                            return (
-                                <g key={`block-${i}`}>
-                                    <rect x="150" y={y - 8} width="200" height="20" fill={color} rx="2" opacity="0.7"/>
-                                    <text x="250" y={y + 5} textAnchor="middle" fontSize="10" fill="white" fontWeight="bold">{block.type}</text>
-                                </g>
-                            );
-                        })}
-                    </svg>
-                );
-            };
-
-            const renderDiagramView = () => {
-                if (!result || !result.json) {
-                    return <div className="empty">No diagram data</div>;
-                }
-
-                const { modules, errors: astErrors } = result.json;
-
-                return (
-                    <div className="diagram-container">
-                        {astErrors && astErrors.length > 0 && (
-                            <div style={{ marginBottom: '12px' }}>
-                                <div className="error-banner">
-                                    {astErrors.map((err, i) => (
-                                        <div key={i}>{err}</div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* D3.js Rendering Canvas */}
-                        <div style={{ marginBottom: '16px' }}>
-                            <div className="diagram-item-title" style={{padding: '8px 16px', background: '#667eea', color: 'white', fontSize: '12px', marginBottom: '8px'}}>
-                                D3.js Diagram Canvas (Ready for T4-T8)
-                            </div>
-                            <svg id="d3-canvas"></svg>
-                        </div>
-
-                        {modules && modules.length > 0 ? (
-                            modules.map((mod, i) => (
-                                <div key={i}>
-                                    <div className="diagram-item-title" style={{padding: '12px 16px', background: '#667eea', color: 'white', marginBottom: '8px'}}>
-                                        📦 Module: {mod.name}
-                                    </div>
-                                    {renderDiagramSVG(mod)}
-                                    <div className="diagram-item" style={{marginTop: '8px', fontSize: '12px'}}>
-                                        <strong>Stats:</strong> {mod.ports?.length || 0} ports • {mod.signals?.length || 0} signals • {mod.blocks?.length || 0} blocks
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="empty">No modules parsed</div>
-                        )}
-                    </div>
-                );
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(svgElement);
+                const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'diagram.svg';
+                link.click();
+                URL.revokeObjectURL(url);
             };
 
             return (
@@ -622,12 +763,12 @@ endmodule`);
                         <div className="header">
                             <div>
                                 <h1>🔧 SchemaTeX Prototype Tester</h1>
-                                <p>Paste SystemVerilog → See parser output → Verify diagram</p>
+                                <p>Paste SystemVerilog → See interactive diagram</p>
                             </div>
                         </div>
 
                         <div className="pane-header">
-                            <h2>Input</h2>
+                            <h2>SystemVerilog Input</h2>
                         </div>
 
                         <div className="editor-area">
@@ -635,29 +776,31 @@ endmodule`);
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
                                 placeholder="Paste SystemVerilog code here..."
+                                id="code-textarea"
                             />
                         </div>
 
                         <div className="button-group">
-                            <button className="primary" onClick={handleParse} disabled={loading}>
+                            <button className="primary" onClick={handleRender} disabled={loading} id="render-btn">
                                 {loading ? (
                                     <>
                                         <span className="spinner"></span>
-                                        Parsing...
+                                        Rendering...
                                     </>
                                 ) : (
-                                    '▶ Parse'
+                                    '▶ Render'
                                 )}
                             </button>
                             <button className="secondary" onClick={handleClear}>Clear</button>
+                            <button className="secondary" onClick={handleExportSVG} disabled={!result}>Export SVG</button>
                         </div>
                     </div>
 
                     <div className="output-pane">
                         <div className="header" style={{ flex: 0 }}>
                             <div>
-                                <h1>Output</h1>
-                                <p>{result ? `✅ Parsed successfully` : `Waiting for parse...`}</p>
+                                <h1>📊 Interactive Diagram</h1>
+                                <p>{result ? '✅ Rendering complete' : 'Click "Render" to generate diagram'}</p>
                             </div>
                         </div>
 
@@ -667,17 +810,24 @@ endmodule`);
                             </div>
                         )}
 
-                        {result && result.errors && result.errors.length > 0 && (
-                            <div className="error-banner">
-                                <strong>⚠️ Parser Warnings:</strong>
-                                {result.errors.map((err, i) => (
-                                    <div key={i} style={{ marginTop: '4px' }}>{err}</div>
-                                ))}
+                        {stats && (
+                            <div className="stats-bar">
+                                <div className="stats-item"><strong>Parse:</strong> {stats.parseTime}ms</div>
+                                <div className="stats-item"><strong>Types:</strong> {stats.typeDetection}ms</div>
+                                <div className="stats-item"><strong>Transform:</strong> {stats.transform}ms</div>
+                                <div className="stats-item"><strong>Layout:</strong> {stats.layout}ms</div>
+                                <div className="stats-item"><strong>Total:</strong> {stats.total}ms</div>
                             </div>
                         )}
 
                         {result && (
                             <div className="tabs">
+                                <button
+                                    className={`tab ${activeTab === 'diagram' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('diagram')}
+                                >
+                                    Diagram
+                                </button>
                                 <button
                                     className={`tab ${activeTab === 'json' ? 'active' : ''}`}
                                     onClick={() => setActiveTab('json')}
@@ -685,10 +835,10 @@ endmodule`);
                                     JSON AST
                                 </button>
                                 <button
-                                    className={`tab ${activeTab === 'diagram' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('diagram')}
+                                    className={`tab ${activeTab === 'info' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('info')}
                                 >
-                                    Diagram Preview
+                                    Info
                                 </button>
                             </div>
                         )}
@@ -697,18 +847,49 @@ endmodule`);
                             {loading ? (
                                 <div className="loading">
                                     <span className="spinner"></span>
-                                    Processing...
+                                    Processing pipeline: Parse → Detect Types → Transform → Layout → Render
                                 </div>
                             ) : result ? (
-                                activeTab === 'json' ? (
+                                activeTab === 'diagram' ? (
+                                    <div className="diagram-container" id="d3-canvas" ref={d3ContainerRef}>
+                                        <div className="zoom-controls">
+                                            <button onClick={() => {
+                                                if (zoomRef.current && svgRef.current) {
+                                                    svgRef.current.transition().duration(750)
+                                                        .call(zoomRef.current.scaleBy, 1.3);
+                                                }
+                                            }}>+</button>
+                                            <button onClick={() => {
+                                                if (zoomRef.current && svgRef.current) {
+                                                    svgRef.current.transition().duration(750)
+                                                        .call(zoomRef.current.scaleBy, 0.77);
+                                                }
+                                            }}>−</button>
+                                            <button onClick={() => {
+                                                if (zoomRef.current && svgRef.current) {
+                                                    svgRef.current.transition().duration(750)
+                                                        .call(zoomRef.current.transform, d3.zoomIdentity.translate(50, 50));
+                                                }
+                                            }}>⟲</button>
+                                        </div>
+                                    </div>
+                                ) : activeTab === 'json' ? (
                                     <div className="json-output">
-                                        {formatJson(result.json)}
+                                        {JSON.stringify(result.parseResult, null, 2)}
                                     </div>
                                 ) : (
-                                    renderDiagramView()
+                                    <div className="json-output">
+                                        <strong>Pipeline Stages:</strong>
+                                        {JSON.stringify(result.stages, null, 2)}
+                                        {'\n\n'}
+                                        <strong>Block Types Detected:</strong>
+                                        {JSON.stringify(result.blockTypes, null, 2)}
+                                        {'\n\n'}
+                                        <strong>Module Count:</strong> {result.parseResult?.modules?.length || 0}
+                                    </div>
                                 )
                             ) : (
-                                <div className="empty">👈 Enter SystemVerilog code and click Parse</div>
+                                <div className="empty">👈 Enter SystemVerilog code and click "Render" to see the diagram</div>
                             )}
                         </div>
                     </div>

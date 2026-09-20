@@ -269,6 +269,33 @@ body {
 	opacity: 0.2;
 }
 
+/* T9: Signal Path Highlighting - Full path with distinct color (#0066ff at 50% opacity) */
+.edge.signal-path-highlighted .edge-path {
+	stroke: #0066ff;
+	stroke-width: 3;
+	opacity: 0.8;
+	filter: drop-shadow(0 0 3px rgba(0, 102, 255, 0.5));
+}
+
+.edge.signal-path-dimmed {
+	opacity: 0.15;
+}
+
+.edge.signal-path-dimmed .edge-path {
+	opacity: 0.15;
+	stroke-width: 1;
+}
+
+/* T9: Highlight source and destination ports */
+.node.signal-endpoint-highlighted {
+	filter: drop-shadow(0 0 4px rgba(0, 102, 255, 0.6));
+}
+
+.node.signal-endpoint-highlighted .port-circle {
+	r: 7;
+	filter: brightness(1.3);
+}
+
 .edge-label {
 	font-size: 10px;
 	fill: var(--vscode-editorGutter-foreground);
@@ -571,4 +598,106 @@ body {
 .navigation-help-key {
 	font-weight: 600;
 	color: var(--vscode-editor-foreground);
+}
+
+/* T9: Signal Metadata Sidebar */
+.signal-metadata-sidebar {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	width: 280px;
+	background-color: var(--vscode-editor-background);
+	border: 1px solid var(--vscode-editorGroup-border);
+	border-radius: var(--border-radius);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	display: none;
+	animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.signal-metadata-content {
+	padding: 12px;
+}
+
+.signal-metadata-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--vscode-editorGroup-border);
+	padding-bottom: 8px;
+}
+
+.signal-metadata-header h3 {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #0066ff;
+	font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+	flex: 1;
+	word-break: break-all;
+}
+
+.signal-metadata-close {
+	background: none;
+	border: none;
+	color: var(--vscode-editor-foreground);
+	font-size: 14px;
+	cursor: pointer;
+	padding: 0;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: color var(--transition);
+}
+
+.signal-metadata-close:hover {
+	color: var(--vscode-inputValidation-errorForeground);
+}
+
+.signal-metadata-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.signal-metadata-row {
+	display: grid;
+	grid-template-columns: 60px 1fr;
+	gap: 8px;
+	font-size: 11px;
+	align-items: center;
+}
+
+.signal-metadata-label {
+	font-weight: 600;
+	color: var(--vscode-editorGutter-foreground);
+	text-align: right;
+}
+
+.signal-metadata-value {
+	color: var(--vscode-editor-foreground);
+	font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+	padding: 2px 4px;
+	background-color: var(--vscode-editorGroupHeader-tabsBackground);
+	border-radius: 2px;
+	word-break: break-all;
+}
+
+.signal-metadata-value[data-type="width"] {
+	color: #0066ff;
+	font-weight: 600;
 }
