@@ -344,38 +344,31 @@ function transformToELK(module, blockTypes) {
     // Ports are stored as metadata on the container and rendered as visual elements on the edge
     // This prevents ELK from positioning them independently
 
-    // Create edges from container to instances
-    // Only connect critical signals (clk, reset) to all instances
-    // Skip connecting every port to every instance (creates spaghetti)
+    // Create edges from container to instances for ALL ports
     if (module.ports) {
-      const criticalSignals = ['clk', 'clock', 'reset', 'rst'];
-
       module.ports.forEach((port) => {
-        // Only create edges for critical signals
-        if (criticalSignals.some(sig => port.name.toLowerCase().includes(sig))) {
-          // Connect to ALL instances
-          if (containerChildren.length > 0) {
-            const signalWidth = port.width || 1;
-            const isBus = signalWidth > 1;
-            const widthLabel = isBus ? `[${signalWidth - 1}:0]` : '';
-            const signalType = detectSignalType(port.name);
+        // Connect all ports to instances to show full data flow
+        if (containerChildren.length > 0) {
+          const signalWidth = port.width || 1;
+          const isBus = signalWidth > 1;
+          const widthLabel = isBus ? `[${signalWidth - 1}:0]` : '';
+          const signalType = detectSignalType(port.name);
 
-            containerChildren.forEach((child) => {
-              edges.push({
-                id: generateId('edge'),
-                sources: [containerId],
-                targets: [child.id],
-                label: port.name,
-                properties: {
-                  width: signalWidth,
-                  portName: port.name,
-                  isBus: isBus,
-                  widthLabel: widthLabel,
-                  signalType: signalType,
-                },
-              });
+          containerChildren.forEach((child) => {
+            edges.push({
+              id: generateId('edge'),
+              sources: [containerId],
+              targets: [child.id],
+              label: port.name,
+              properties: {
+                width: signalWidth,
+                portName: port.name,
+                isBus: isBus,
+                widthLabel: widthLabel,
+                signalType: signalType,
+              },
             });
-          }
+          });
         }
       });
     }

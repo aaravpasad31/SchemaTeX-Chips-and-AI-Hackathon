@@ -393,6 +393,12 @@ export default function D3Canvas({ graph }: D3CanvasProps) {
       const nodePositions: Record<string, { x: number; y: number }> = {}
       ;[...blockNodes, ...containerNodes, ...portNodes].forEach((node: any) => {
         nodePositions[node.id] = { x: node.x || 0, y: node.y || 0 }
+        // Also include nested instance nodes from hierarchical containers
+        if (node.children && Array.isArray(node.children)) {
+          node.children.forEach((child: any) => {
+            nodePositions[child.id] = { x: child.x || 0, y: child.y || 0 }
+          })
+        }
       })
 
       graph.edges.forEach((edge: any) => {
