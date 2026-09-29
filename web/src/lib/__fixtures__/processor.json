@@ -1,0 +1,686 @@
+{
+  "success": true,
+  "diagnostics": [],
+  "tops": [
+    {
+      "name": "processor",
+      "module": "processor",
+      "path": "processor",
+      "parameters": [],
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "reset",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "addr",
+          "direction": "input",
+          "width": 32,
+          "type": "logic[31:0]"
+        },
+        {
+          "name": "data_in",
+          "direction": "input",
+          "width": 32,
+          "type": "logic[31:0]"
+        },
+        {
+          "name": "rw",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "data_out",
+          "direction": "output",
+          "width": 32,
+          "type": "logic[31:0]"
+        },
+        {
+          "name": "ready",
+          "direction": "output",
+          "width": 1,
+          "type": "logic"
+        }
+      ],
+      "signals": [
+        {
+          "name": "alu_out",
+          "kind": "net",
+          "width": 32,
+          "type": "logic[31:0]",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "mem_addr",
+          "kind": "net",
+          "width": 32,
+          "type": "logic[31:0]",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "cache_hit",
+          "kind": "net",
+          "width": 1,
+          "type": "logic",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "mem_data",
+          "kind": "net",
+          "width": 32,
+          "type": "logic[31:0]",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "alu_in_a",
+          "kind": "variable",
+          "width": 32,
+          "type": "logic[31:0]",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "alu_in_b",
+          "kind": "variable",
+          "width": 32,
+          "type": "logic[31:0]",
+          "isEnum": false,
+          "isArray": false
+        },
+        {
+          "name": "alu_op",
+          "kind": "variable",
+          "width": 4,
+          "type": "logic[3:0]",
+          "isEnum": false,
+          "isArray": false
+        }
+      ],
+      "blocks": [
+        {
+          "id": "b0",
+          "kind": "always_comb",
+          "name": null,
+          "line": 67,
+          "reads": [
+            {
+              "name": "data_in",
+              "bits": null
+            },
+            {
+              "name": "addr",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "alu_in_a",
+              "bits": null
+            },
+            {
+              "name": "alu_in_b",
+              "bits": null
+            },
+            {
+              "name": "alu_op",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        }
+      ],
+      "instances": [
+        {
+          "name": "alu_inst",
+          "module": "alu",
+          "path": "processor.alu_inst",
+          "parameters": [],
+          "ports": [
+            {
+              "name": "a",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "b",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "op",
+              "direction": "input",
+              "width": 4,
+              "type": "logic[3:0]"
+            },
+            {
+              "name": "result",
+              "direction": "output",
+              "width": 32,
+              "type": "logic[31:0]"
+            }
+          ],
+          "signals": [],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_comb",
+              "name": null,
+              "line": 86,
+              "reads": [
+                {
+                  "name": "op",
+                  "bits": null
+                },
+                {
+                  "name": "a",
+                  "bits": null
+                },
+                {
+                  "name": "b",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "result",
+                  "bits": null
+                }
+              ],
+              "clocks": []
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "a",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "alu_in_a",
+                  "bits": null
+                }
+              ],
+              "expr": "alu_in_a"
+            },
+            {
+              "port": "b",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "alu_in_b",
+                  "bits": null
+                }
+              ],
+              "expr": "alu_in_b"
+            },
+            {
+              "port": "op",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "alu_op",
+                  "bits": null
+                }
+              ],
+              "expr": "alu_op"
+            },
+            {
+              "port": "result",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "alu_out",
+                  "bits": null
+                }
+              ],
+              "expr": "alu_out"
+            }
+          ]
+        },
+        {
+          "name": "mem_ctrl_inst",
+          "module": "memory_controller",
+          "path": "processor.mem_ctrl_inst",
+          "parameters": [],
+          "ports": [
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "addr",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "data_in",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "rw",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "data_out",
+              "direction": "output",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "ready",
+              "direction": "output",
+              "width": 1,
+              "type": "logic"
+            }
+          ],
+          "signals": [
+            {
+              "name": "mem",
+              "kind": "variable",
+              "width": 32,
+              "type": "logic[31:0]$[0:255]",
+              "isEnum": false,
+              "isArray": true
+            },
+            {
+              "name": "mem_addr_reg",
+              "kind": "variable",
+              "width": 8,
+              "type": "logic[7:0]",
+              "isEnum": false,
+              "isArray": false
+            }
+          ],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_ff",
+              "name": null,
+              "line": 117,
+              "reads": [
+                {
+                  "name": "clk",
+                  "bits": null
+                },
+                {
+                  "name": "reset",
+                  "bits": null
+                },
+                {
+                  "name": "addr",
+                  "bits": [
+                    0,
+                    7
+                  ]
+                },
+                {
+                  "name": "rw",
+                  "bits": null
+                },
+                {
+                  "name": "mem",
+                  "bits": null
+                },
+                {
+                  "name": "data_in",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "ready",
+                  "bits": null
+                },
+                {
+                  "name": "mem_addr_reg",
+                  "bits": null
+                },
+                {
+                  "name": "mem",
+                  "bits": null
+                },
+                {
+                  "name": "data_out",
+                  "bits": null
+                }
+              ],
+              "clocks": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ]
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "addr",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "mem_addr",
+                  "bits": null
+                }
+              ],
+              "expr": "mem_addr"
+            },
+            {
+              "port": "data_in",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "alu_out",
+                  "bits": null
+                }
+              ],
+              "expr": "alu_out"
+            },
+            {
+              "port": "rw",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "rw",
+                  "bits": null
+                }
+              ],
+              "expr": "rw"
+            },
+            {
+              "port": "data_out",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "mem_data",
+                  "bits": null
+                }
+              ],
+              "expr": "mem_data"
+            },
+            {
+              "port": "ready",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "ready",
+                  "bits": null
+                }
+              ],
+              "expr": "ready"
+            }
+          ]
+        },
+        {
+          "name": "cache_controller_inst",
+          "module": "cache_controller",
+          "path": "processor.cache_controller_inst",
+          "parameters": [],
+          "ports": [
+            {
+              "name": "addr",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "mem_addr",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "mem_data",
+              "direction": "input",
+              "width": 32,
+              "type": "logic[31:0]"
+            },
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "cache_hit",
+              "direction": "output",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "data_out",
+              "direction": "output",
+              "width": 32,
+              "type": "logic[31:0]"
+            }
+          ],
+          "signals": [
+            {
+              "name": "cache_tags",
+              "kind": "variable",
+              "width": 32,
+              "type": "logic[31:0]$[0:31]",
+              "isEnum": false,
+              "isArray": true
+            },
+            {
+              "name": "cache_data",
+              "kind": "variable",
+              "width": 32,
+              "type": "logic[31:0]$[0:31]",
+              "isEnum": false,
+              "isArray": true
+            },
+            {
+              "name": "cache_addr",
+              "kind": "variable",
+              "width": 5,
+              "type": "logic[4:0]",
+              "isEnum": false,
+              "isArray": false
+            }
+          ],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "assign",
+              "name": null,
+              "line": 157,
+              "reads": [
+                {
+                  "name": "addr",
+                  "bits": [
+                    2,
+                    6
+                  ]
+                }
+              ],
+              "writes": [
+                {
+                  "name": "cache_addr",
+                  "bits": null
+                }
+              ],
+              "clocks": []
+            },
+            {
+              "id": "b1",
+              "kind": "always_comb",
+              "name": null,
+              "line": 159,
+              "reads": [
+                {
+                  "name": "cache_tags",
+                  "bits": null
+                },
+                {
+                  "name": "cache_addr",
+                  "bits": null
+                },
+                {
+                  "name": "addr",
+                  "bits": null
+                },
+                {
+                  "name": "cache_data",
+                  "bits": null
+                },
+                {
+                  "name": "mem_data",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "cache_hit",
+                  "bits": null
+                },
+                {
+                  "name": "data_out",
+                  "bits": null
+                }
+              ],
+              "clocks": []
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "addr",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "addr",
+                  "bits": null
+                }
+              ],
+              "expr": "addr"
+            },
+            {
+              "port": "mem_addr",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "mem_addr",
+                  "bits": null
+                }
+              ],
+              "expr": "mem_addr"
+            },
+            {
+              "port": "mem_data",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "mem_data",
+                  "bits": null
+                }
+              ],
+              "expr": "mem_data"
+            },
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "cache_hit",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "cache_hit",
+                  "bits": null
+                }
+              ],
+              "expr": "cache_hit"
+            },
+            {
+              "port": "data_out",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "data_out",
+                  "bits": null
+                }
+              ],
+              "expr": "data_out"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

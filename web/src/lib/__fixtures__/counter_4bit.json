@@ -1,0 +1,106 @@
+{
+  "success": true,
+  "diagnostics": [],
+  "tops": [
+    {
+      "name": "counter_4bit",
+      "module": "counter_4bit",
+      "path": "counter_4bit",
+      "parameters": [],
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "reset",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "enable",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "count",
+          "direction": "output",
+          "width": 4,
+          "type": "logic[3:0]"
+        }
+      ],
+      "signals": [
+        {
+          "name": "count_next",
+          "kind": "variable",
+          "width": 4,
+          "type": "logic[3:0]",
+          "isEnum": false,
+          "isArray": false
+        }
+      ],
+      "blocks": [
+        {
+          "id": "b0",
+          "kind": "always_comb",
+          "name": null,
+          "line": 15,
+          "reads": [
+            {
+              "name": "reset",
+              "bits": null
+            },
+            {
+              "name": "enable",
+              "bits": null
+            },
+            {
+              "name": "count",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "count_next",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        },
+        {
+          "id": "b1",
+          "kind": "always_ff",
+          "name": null,
+          "line": 26,
+          "reads": [
+            {
+              "name": "clk",
+              "bits": null
+            },
+            {
+              "name": "count_next",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "count",
+              "bits": null
+            }
+          ],
+          "clocks": [
+            {
+              "name": "clk",
+              "bits": null
+            }
+          ]
+        }
+      ],
+      "instances": []
+    }
+  ]
+}

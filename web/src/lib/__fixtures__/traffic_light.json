@@ -1,0 +1,207 @@
+{
+  "success": true,
+  "diagnostics": [],
+  "tops": [
+    {
+      "name": "traffic_light",
+      "module": "traffic_light",
+      "path": "traffic_light",
+      "parameters": [],
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "reset",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "car_waiting",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "red",
+          "direction": "output",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "yellow",
+          "direction": "output",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "green",
+          "direction": "output",
+          "width": 1,
+          "type": "logic"
+        }
+      ],
+      "signals": [
+        {
+          "name": "state",
+          "kind": "variable",
+          "width": 2,
+          "type": "traffic_light.state_t",
+          "isEnum": true,
+          "isArray": false
+        },
+        {
+          "name": "next_state",
+          "kind": "variable",
+          "width": 2,
+          "type": "traffic_light.state_t",
+          "isEnum": true,
+          "isArray": false
+        },
+        {
+          "name": "timer",
+          "kind": "variable",
+          "width": 4,
+          "type": "logic[3:0]",
+          "isEnum": false,
+          "isArray": false
+        }
+      ],
+      "blocks": [
+        {
+          "id": "b0",
+          "kind": "always_ff",
+          "name": null,
+          "line": 18,
+          "reads": [
+            {
+              "name": "clk",
+              "bits": null
+            },
+            {
+              "name": "reset",
+              "bits": null
+            },
+            {
+              "name": "state",
+              "bits": null
+            },
+            {
+              "name": "timer",
+              "bits": null
+            },
+            {
+              "name": "next_state",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "state",
+              "bits": null
+            },
+            {
+              "name": "timer",
+              "bits": null
+            }
+          ],
+          "clocks": [
+            {
+              "name": "clk",
+              "bits": null
+            }
+          ]
+        },
+        {
+          "id": "b1",
+          "kind": "always_comb",
+          "name": null,
+          "line": 28,
+          "reads": [
+            {
+              "name": "state",
+              "bits": null
+            },
+            {
+              "name": "car_waiting",
+              "bits": null
+            },
+            {
+              "name": "timer",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "next_state",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        },
+        {
+          "id": "b2",
+          "kind": "assign",
+          "name": null,
+          "line": 38,
+          "reads": [
+            {
+              "name": "state",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "red",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        },
+        {
+          "id": "b3",
+          "kind": "assign",
+          "name": null,
+          "line": 39,
+          "reads": [
+            {
+              "name": "state",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "yellow",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        },
+        {
+          "id": "b4",
+          "kind": "assign",
+          "name": null,
+          "line": 40,
+          "reads": [
+            {
+              "name": "state",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "green",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        }
+      ],
+      "instances": []
+    }
+  ]
+}

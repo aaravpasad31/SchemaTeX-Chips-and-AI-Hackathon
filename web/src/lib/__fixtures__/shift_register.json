@@ -1,0 +1,575 @@
+{
+  "success": true,
+  "diagnostics": [],
+  "tops": [
+    {
+      "name": "shift_register",
+      "module": "shift_register",
+      "path": "shift_register",
+      "parameters": [
+        {
+          "name": "DEPTH",
+          "value": "4"
+        },
+        {
+          "name": "WIDTH",
+          "value": "8"
+        }
+      ],
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "reset",
+          "direction": "input",
+          "width": 1,
+          "type": "logic"
+        },
+        {
+          "name": "din",
+          "direction": "input",
+          "width": 8,
+          "type": "logic[7:0]"
+        },
+        {
+          "name": "dout",
+          "direction": "output",
+          "width": 8,
+          "type": "logic[7:0]"
+        }
+      ],
+      "signals": [
+        {
+          "name": "taps",
+          "kind": "variable",
+          "width": 8,
+          "type": "logic[7:0]$[0:4]",
+          "isEnum": false,
+          "isArray": true
+        }
+      ],
+      "blocks": [
+        {
+          "id": "b0",
+          "kind": "assign",
+          "name": null,
+          "line": 33,
+          "reads": [
+            {
+              "name": "din",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "taps[0]",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        },
+        {
+          "id": "b1",
+          "kind": "assign",
+          "name": null,
+          "line": 44,
+          "reads": [
+            {
+              "name": "taps[4]",
+              "bits": null
+            }
+          ],
+          "writes": [
+            {
+              "name": "dout",
+              "bits": null
+            }
+          ],
+          "clocks": []
+        }
+      ],
+      "instances": [
+        {
+          "name": "stage[0].ff",
+          "module": "dff",
+          "path": "shift_register.stage[0].ff",
+          "parameters": [
+            {
+              "name": "WIDTH",
+              "value": "8"
+            }
+          ],
+          "ports": [
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "d",
+              "direction": "input",
+              "width": 8,
+              "type": "logic[7:0]"
+            },
+            {
+              "name": "q",
+              "direction": "output",
+              "width": 8,
+              "type": "logic[7:0]"
+            }
+          ],
+          "signals": [],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_ff",
+              "name": null,
+              "line": 14,
+              "reads": [
+                {
+                  "name": "clk",
+                  "bits": null
+                },
+                {
+                  "name": "reset",
+                  "bits": null
+                },
+                {
+                  "name": "d",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "q",
+                  "bits": null
+                }
+              ],
+              "clocks": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ]
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "d",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "taps[0]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i]"
+            },
+            {
+              "port": "q",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "taps[1]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i+1]"
+            }
+          ]
+        },
+        {
+          "name": "stage[1].ff",
+          "module": "dff",
+          "path": "shift_register.stage[1].ff",
+          "parameters": [
+            {
+              "name": "WIDTH",
+              "value": "8"
+            }
+          ],
+          "ports": [
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "d",
+              "direction": "input",
+              "width": 8,
+              "type": "logic[7:0]"
+            },
+            {
+              "name": "q",
+              "direction": "output",
+              "width": 8,
+              "type": "logic[7:0]"
+            }
+          ],
+          "signals": [],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_ff",
+              "name": null,
+              "line": 14,
+              "reads": [
+                {
+                  "name": "clk",
+                  "bits": null
+                },
+                {
+                  "name": "reset",
+                  "bits": null
+                },
+                {
+                  "name": "d",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "q",
+                  "bits": null
+                }
+              ],
+              "clocks": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ]
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "d",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "taps[1]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i]"
+            },
+            {
+              "port": "q",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "taps[2]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i+1]"
+            }
+          ]
+        },
+        {
+          "name": "stage[2].ff",
+          "module": "dff",
+          "path": "shift_register.stage[2].ff",
+          "parameters": [
+            {
+              "name": "WIDTH",
+              "value": "8"
+            }
+          ],
+          "ports": [
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "d",
+              "direction": "input",
+              "width": 8,
+              "type": "logic[7:0]"
+            },
+            {
+              "name": "q",
+              "direction": "output",
+              "width": 8,
+              "type": "logic[7:0]"
+            }
+          ],
+          "signals": [],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_ff",
+              "name": null,
+              "line": 14,
+              "reads": [
+                {
+                  "name": "clk",
+                  "bits": null
+                },
+                {
+                  "name": "reset",
+                  "bits": null
+                },
+                {
+                  "name": "d",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "q",
+                  "bits": null
+                }
+              ],
+              "clocks": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ]
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "d",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "taps[2]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i]"
+            },
+            {
+              "port": "q",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "taps[3]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i+1]"
+            }
+          ]
+        },
+        {
+          "name": "stage[3].ff",
+          "module": "dff",
+          "path": "shift_register.stage[3].ff",
+          "parameters": [
+            {
+              "name": "WIDTH",
+              "value": "8"
+            }
+          ],
+          "ports": [
+            {
+              "name": "clk",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "reset",
+              "direction": "input",
+              "width": 1,
+              "type": "logic"
+            },
+            {
+              "name": "d",
+              "direction": "input",
+              "width": 8,
+              "type": "logic[7:0]"
+            },
+            {
+              "name": "q",
+              "direction": "output",
+              "width": 8,
+              "type": "logic[7:0]"
+            }
+          ],
+          "signals": [],
+          "blocks": [
+            {
+              "id": "b0",
+              "kind": "always_ff",
+              "name": null,
+              "line": 14,
+              "reads": [
+                {
+                  "name": "clk",
+                  "bits": null
+                },
+                {
+                  "name": "reset",
+                  "bits": null
+                },
+                {
+                  "name": "d",
+                  "bits": null
+                }
+              ],
+              "writes": [
+                {
+                  "name": "q",
+                  "bits": null
+                }
+              ],
+              "clocks": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ]
+            }
+          ],
+          "instances": [],
+          "connections": [
+            {
+              "port": "clk",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "clk",
+                  "bits": null
+                }
+              ],
+              "expr": "clk"
+            },
+            {
+              "port": "reset",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "reset",
+                  "bits": null
+                }
+              ],
+              "expr": "reset"
+            },
+            {
+              "port": "d",
+              "direction": "input",
+              "signals": [
+                {
+                  "name": "taps[3]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i]"
+            },
+            {
+              "port": "q",
+              "direction": "output",
+              "signals": [
+                {
+                  "name": "taps[4]",
+                  "bits": null
+                }
+              ],
+              "expr": "taps[i+1]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
