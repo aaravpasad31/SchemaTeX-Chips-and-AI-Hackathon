@@ -4,7 +4,13 @@ module counter_4bit (
   input wire reset,
   output wire [3:0] count
 );
-  wire [3:0] count_reg;
+  logic [3:0] count_reg;
+
+  always_ff @(posedge clk or posedge reset) begin
+    if (reset) count_reg <= 4'b0000;
+    else       count_reg <= count_reg + 1;
+  end
+
   assign count = count_reg;
 endmodule
 

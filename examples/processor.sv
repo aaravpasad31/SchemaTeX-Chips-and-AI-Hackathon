@@ -29,9 +29,9 @@ module processor (
     wire [31:0] mem_addr;
     wire        cache_hit;
     wire [31:0] mem_data;
-    wire [31:0] alu_in_a;
-    wire [31:0] alu_in_b;
-    wire [3:0]  alu_op;
+    logic [31:0] alu_in_a;
+    logic [31:0] alu_in_b;
+    logic [3:0]  alu_op;
 
     // ALU Instance
     alu alu_inst (
@@ -68,11 +68,6 @@ module processor (
         alu_in_a = data_in;
         alu_in_b = addr;
         alu_op = 4'b0000;  // ADD operation
-
-        if (cache_hit) begin
-            // Use cached data
-            data_out = mem_data;
-        end
     end
 
 endmodule
