@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion'
+import type { Example } from '../types'
 
 interface EditorProps {
   code: string
   selectedExample: string
-  examples: Record<string, { name: string; code: string }>
+  examples: Record<string, Example>
   loading: boolean
   onCodeChange: (code: string) => void
   onExampleChange: (key: string) => void
@@ -35,10 +36,14 @@ export default function Editor({
           onChange={(e) => onExampleChange(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
         >
-          {Object.entries(examples).map(([key, example]) => (
-            <option key={key} value={key}>
-              {example.name}
-            </option>
+          {groupExamples(examples).map(([group, entries]) => (
+            <optgroup key={group} label={group}>
+              {entries.map(([key, example]) => (
+                <option key={key} value={key}>
+                  {example.name}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
@@ -46,6 +51,13 @@ export default function Editor({
       <textarea
         value={code}
         onChange={(e) => onCodeChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault()
+            onRender()
+          }
+        }}
+        spellCheck={false}
         placeholder="Paste SystemVerilog code here..."
         className="flex-1 px-6 py-4 font-mono text-xs bg-white text-slate-900 border-0 resize-none focus:outline-none placeholder-slate-400"
         style={{ lineHeight: '1.6' }}
@@ -75,4 +87,14 @@ export default function Editor({
       </div>
     </motion.div>
   )
+}
+
+/** Examples grouped by heading, in the order the groups first appear. */
+function groupExamples(examples: Record<string, Example>) {
+  const groups = new Map<string, [string, Example][]>()
+  for (const entry of Object.entries(examples)) {
+    const group = entry[1].group
+    groups.set(group, [...(groups.get(group) ?? []), entry])
+  }
+  return [...groups]
 }

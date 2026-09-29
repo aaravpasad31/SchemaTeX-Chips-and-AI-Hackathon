@@ -2,46 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-white text-slate-900;
-  }
-
-  h1 {
-    @apply text-5xl md:text-7xl tracking-tighter font-bold leading-none;
-  }
-
-  h2 {
-    @apply text-4xl md:text-5xl tracking-tight font-semibold leading-tight;
-  }
-
-  h3 {
-    @apply text-2xl md:text-3xl tracking-tight font-semibold;
-  }
-
-  p {
-    @apply text-base text-slate-600 leading-relaxed;
-  }
+/* Clicking a wire or pin highlights its whole net and fades everything else. */
+.schematic svg.has-selection g.wire {
+  opacity: 0.15;
 }
 
-@layer components {
-  .gradient-text {
-    @apply bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent;
-  }
+.schematic svg.has-selection g.wire.selected {
+  opacity: 1;
+}
 
-  .card-minimal {
-    @apply border border-slate-100 rounded-lg p-8 bg-white;
-  }
+.schematic g.wire.selected .wire-line {
+  stroke-width: 3.5px;
+}
 
-  .button-premium {
-    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 active:scale-95;
-  }
-
-  .button-primary {
-    @apply button-premium bg-slate-900 text-white hover:bg-slate-800;
-  }
-
-  .button-secondary {
-    @apply button-premium border border-slate-200 text-slate-900 hover:bg-slate-50;
-  }
+.schematic g.wire:hover .wire-line {
+  stroke-width: 3px;
 }

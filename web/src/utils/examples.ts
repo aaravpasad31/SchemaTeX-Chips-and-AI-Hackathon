@@ -1,102 +1,49 @@
 import type { Example } from '../types'
 
-export const examples: Record<string, Example> = {
-  counter_4bit: {
-    name: '4-bit Counter',
-    code: `module counter_4bit (
-    input wire clk,
-    input wire reset,
-    input wire enable,
-    output logic [3:0] count
-);
+// Sample designs are bundled as raw text from the repo: the curated examples/ folder,
+// followed by the design test suite in tests/designs/ grouped by category.
+const exampleSources = import.meta.glob<string>('../../../examples/*.sv', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})
+const suiteSources = import.meta.glob<string>('../../../tests/designs/**/*.sv', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})
 
-    logic [3:0] count_next;
-
-    always_comb begin
-        if (reset) begin
-            count_next = 4'b0000;
-        end else if (enable) begin
-            count_next = count + 1;
-        end else begin
-            count_next = count;
-        end
-    end
-
-    always_ff @(posedge clk) begin
-        count <= count_next;
-    end
-
-endmodule`,
-  },
-  counter_chain: {
-    name: 'Counter Chain (Hierarchical)',
-    code: `module counter_chain (
-  input clk,
-  input reset,
-  output [3:0] out1,
-  output [3:0] out2,
-  output [3:0] out3
-);
-  wire [3:0] cnt1, cnt2, cnt3;
-
-  counter_4bit c1 (.clk(clk), .reset(reset), .count(cnt1));
-  counter_4bit c2 (.clk(clk), .reset(reset), .count(cnt2));
-  counter_4bit c3 (.clk(clk), .reset(reset), .count(cnt3));
-
-  assign out1 = cnt1;
-  assign out2 = cnt2;
-  assign out3 = cnt3;
-endmodule`,
-  },
-  hierarchical: {
-    name: 'Hierarchical (Multi-Module)',
-    code: `module top_level (
-    input  wire       clk,
-    input  wire [7:0] data_in,
-    output wire [7:0] data_out
-);
-
-    alu_unit alu_inst (
-        .clk(clk),
-        .a(data_in),
-        .b(8'h00),
-        .result()
-    );
-
-    memory_unit mem_inst (
-        .clk(clk),
-        .addr(3'b000),
-        .data_out(data_out)
-    );
-
-    control_unit ctrl_inst (
-        .clk(clk),
-        .enable(1'b1)
-    );
-
-endmodule`,
-  },
-  mux: {
-    name: 'Combinational (Mux)',
-    code: `module mux_4to1 (
-    input  wire [1:0] sel,
-    input  wire [7:0] a,
-    input  wire [7:0] b,
-    input  wire [7:0] c,
-    input  wire [7:0] d,
-    output logic [7:0] out
-);
-
-    always_comb begin
-        case (sel)
-            2'b00: out = a;
-            2'b01: out = b;
-            2'b10: out = c;
-            2'b11: out = d;
-            default: out = 8'b0;
-        endcase
-    end
-
-endmodule`,
-  },
+const TITLES: Record<string, string> = {
+  counter_4bit: '4-bit counter (sequential)',
+  mux_4to1: '4-to-1 mux (combinational)',
+  traffic_light: 'Traffic light (state machine)',
+  counter_chain: 'Counter chain (hierarchy)',
+  shift_register: 'Shift register (generate loop)',
+  processor: 'Processor (mixed hierarchy)',
 }
+
+const fileKey = (path: string) => path.slice(path.lastIndexOf('/') + 1, -'.sv'.length)
+
+function orderOf(key: string) {
+  const index = Object.keys(TITLES).indexOf(key)
+  return index === -1 ? Infinity : index
+}
+
+const curated = Object.entries(exampleSources)
+  .map(([path, code]) => {
+    const key = fileKey(path)
+    return [key, { name: TITLES[key] ?? key, group: 'Examples', code }] as const
+  })
+  .sort(([a], [b]) => orderOf(a) - orderOf(b))
+
+const suite = Object.entries(suiteSources)
+  .map(([path, code]) => {
+    const [category, file] = path.split('/tests/designs/')[1].split('/')
+    const key = `tests/${category}/${file}`
+    return [key, { name: fileKey(file), group: `Test suite: ${category}`, code }] as const
+  })
+  .sort(([a], [b]) => a.localeCompare(b))
+
+export const examples: Record<string, Example> = Object.fromEntries([...curated, ...suite])
+
+export const DEFAULT_EXAMPLE = 'counter_4bit'
