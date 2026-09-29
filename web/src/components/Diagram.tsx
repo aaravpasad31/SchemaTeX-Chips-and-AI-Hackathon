@@ -15,6 +15,8 @@ interface DiagramProps {
   error: string | null
   loading: boolean
   timings: Timings | null
+  /** The editor's code has changed since this diagram was rendered. */
+  stale: boolean
   activeTab: Tab
   selectedNet: string | null
   onTabChange: (tab: Tab) => void
@@ -33,6 +35,7 @@ export default function Diagram({
   error,
   loading,
   timings,
+  stale,
   activeTab,
   selectedNet,
   onTabChange,
@@ -57,6 +60,11 @@ export default function Diagram({
             <p className="text-xs text-slate-500 mt-0.5">
               Parsed in {Math.round(timings.parse)} ms · laid out in {Math.round(timings.layout)} ms
               {current && ` · ${MODULE_TYPE_LABELS[classifyModule(current)]}`}
+              {stale && (
+                <span className="ml-2 text-amber-700 font-medium">
+                  · Code changed since this render. Click Render to update.
+                </span>
+              )}
             </p>
           )}
         </div>

@@ -27,6 +27,8 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('diagram')
   const [timings, setTimings] = useState<Timings | null>(null)
+  /** The source the current diagram was rendered from, to flag when the editor has moved on. */
+  const [renderedCode, setRenderedCode] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
 
   const trail = useMemo(() => resolvePath(design, path), [design, path])
@@ -46,6 +48,7 @@ export default function App() {
     try {
       const result = await parseDesign(source, controller.signal)
       setDesign(result)
+      setRenderedCode(source)
       setPath([0])
       setSelectedNet(null)
       setTimings({ parse: performance.now() - started, layout: 0 })
@@ -80,21 +83,17 @@ export default function App() {
     }
   }, [current])
 
-  // Render the initial example once on load.
-  useEffect(() => {
-    render(code)
-  }, [])
-
+  // Picking an example only loads its code; nothing is drawn until Render is clicked.
   const handleExampleChange = (key: string) => {
     setSelectedExample(key)
     setCode(examples[key].code)
-    render(examples[key].code)
   }
 
   const handleClear = () => {
     request.current?.abort()
     setCode('')
     setDesign(null)
+    setRenderedCode(null)
     setLayout(null)
     setError(null)
   }
@@ -125,6 +124,7 @@ export default function App() {
           error={error}
           loading={loading}
           timings={timings}
+          stale={renderedCode !== null && renderedCode !== code}
           activeTab={activeTab}
           selectedNet={selectedNet}
           onTabChange={setActiveTab}
