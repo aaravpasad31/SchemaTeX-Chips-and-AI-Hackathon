@@ -1,7 +1,7 @@
 # ADR 0001: Parser and Renderer Separation via CLI Subprocess
 
 ## Status
-Accepted
+Superseded by [ADR 0003](0003-slang-elaboration-server.md). The C++ parser and VS Code extension described here have been removed.
 
 ## Context
 

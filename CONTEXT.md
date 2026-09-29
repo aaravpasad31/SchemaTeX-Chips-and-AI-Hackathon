@@ -4,7 +4,7 @@ For Claude sessions: understand the domain concepts, architecture, and design de
 
 ## Overview
 
-SchemaTeX is a tool that transforms SystemVerilog RTL code into interactive professional block diagrams. The parser is **deterministic** (no LLM guessing)—Claude assists only when inferring high-level abstractions for complex patterns.
+SchemaTeX is a tool that transforms SystemVerilog RTL code into interactive professional block diagrams. The front end is **deterministic**: designs are elaborated by the slang compiler, with no LLM guessing. Claude assists only when inferring high-level abstractions for complex patterns.
 
 ## Core Concepts
 
@@ -41,39 +41,48 @@ For simple logic (assign, always_comb, always_ff), the diagram is 1:1 with code.
 
 ## Architecture Overview
 
-### Three-Part System
+### Two-Part System
 
-1. **Parser** (C++ in `parser/`)
-   - Deterministic extraction of AST from SystemVerilog code
-   - No ambiguity, no heuristics—faithful to the source
-   - Outputs JSON AST matching `shared/ast-schema.json`
-   - Runs as HTTP server on port 3001
+1. **Server** (Python in `server/`, see [ADR 0003](docs/adr/0003-slang-elaboration-server.md))
+   - `schematex/extract.py` runs [slang](https://github.com/MikePopoloski/slang) (via `pyslang`) to parse **and elaborate** the source, then walks the instance tree
+   - Returns JSON: diagnostics plus, per instance, ports, signals, logic blocks (reads / writes / clocks) and child instances with their port connections
+   - `app.py` serves it as `POST /api/parse` on port 3001; `python -m schematex file.sv` prints the same JSON
 
 2. **Web App** (React/TypeScript in `web/`)
-   - User interface: paste code, see diagram
-   - Organized in `src/{components,hooks,types,utils}`
-   - Uses React built-in state (no Redux/Zustand needed yet)
-   - Communicates with parser via HTTP `/parse` endpoint
+   - `src/lib/classify.ts`: block type detection (the 6 types below)
+   - `src/lib/graph.ts`: turns one level of the hierarchy into nodes, fixed-position ports and net edges
+   - `src/lib/layout.ts`: ELK layered layout with orthogonal routing
+   - `src/components/D3Canvas.tsx`: SVG rendering, zoom/pan, net highlighting, drill-down
+   - Uses React built-in state. The Vite dev server proxies `/api` to the server.
 
-3. **Shared Schema** (`shared/ast-schema.json`)
-   - Contract between parser and web app
-   - Defines structure of the JSON AST
+The JSON contract is defined by `server/schematex/extract.py` and mirrored in `web/src/types/index.ts`.
 
 ### Data Pipeline
 
 ```
 SystemVerilog Code
     ↓
-[Parser] → JSON AST
+[slang] → elaborated instance tree (JSON)          server/
     ↓
-[Type Detection] → Block type (hierarchical, combinational, sequential, FSM, memory, mixed)
+[Type Detection] → hierarchical, mixed, FSM, memory, sequential, combinational
     ↓
-[ELK Layout] → Positioned nodes & routed wires
+[Graph] → nodes (ports, blocks, instances) + edges (driver → sink per net)
     ↓
-[D3.js Render] → SVG diagram
+[ELK Layout] → positioned nodes & routed wires
     ↓
-[Interactive Web App] → User sees diagram, can zoom/pan/expand
+[D3.js Render] → SVG; zoom/pan, click a net, double-click to open an instance
 ```
+
+### Nets and signal names
+
+Signal names are relative to the instance that owns them (`count_next`, or `stage[0].x` inside a generate block).
+
+Every reference the server reports is `{name, bits}`:
+- A constant-index select of an **unpacked array** names its own element (`taps[2]`, `link[0][1]`); each element is effectively its own variable.
+- A constant **bit or part select** of a vector keeps its range: `carry[3]` is `{name: "carry", bits: [3, 3]}`, and `data[7:4]`, `data[4 +: 4]` and `data[7 -: 4]` are all `bits: [4, 7]`.
+- Anything with a non-constant index (`mem[addr]`, `a[i]` in a procedural loop) refers to the whole signal (`bits: null`).
+
+`graph.ts` connects a driver to a reader only when the bits they touch **overlap**. So `cnt1` driving `cnt1[3]` is a wire, while `carry[1]` and `carry[2]` are separate, and a ripple-carry chain draws as a chain. Clicking a wire highlights the whole signal.
 
 ---
 
@@ -86,17 +95,15 @@ SystemVerilog → diagram generation is **deterministic**. No randomness, no LLM
 Code is the source of truth. File save triggers diagram regeneration. **Diagram edits do NOT flow back to code** in V1 (one-way only).
 
 ### Modular Coupling
-Parser and web app communicate **only via JSON AST** over HTTP. No tight coupling. Either component can be swapped independently.
+Server and web app communicate **only via JSON** over HTTP. No tight coupling. Either component can be swapped independently.
 
 ### Supported Subset (V1)
-- `assign` statements
-- `always_comb` blocks
-- `always_ff` blocks
-- Module instantiation
-- Parameters and generate blocks
-- Port declarations (input/output/inout)
+slang accepts the full language. The **diagram** shows:
+- `assign` statements and all procedural blocks (`always_ff`, `always_comb`, `always_latch`, `always`, `initial`, `final`)
+- Module instances, including those in generate blocks and instance arrays (flattened into the parent)
+- Parameters (elaborated values) and ports (input/output/inout)
 
-**Not supported in V1**: assertions, interfaces, advanced constraint handling, procedural blocks outside always.
+**Not drawn yet**: interfaces and modports, instances of undefined modules, assertions, classes.
 
 ---
 
@@ -112,25 +119,25 @@ Modules are classified into 6 mutually exclusive categories:
 
 ### 2. Combinational Logic
 - Definition: Pure combinational blocks, no state
-- Detection: Only `always_comb` blocks, no `always_ff`
+- Detection: No child instances and no `always_ff` blocks
 - Visual: Light box with logic indicator
 - Example: `decoder`, `multiplexer`, `adder`
 
 ### 3. Sequential Logic
 - Definition: Registered logic with state
-- Detection: Contains `always_ff` blocks with state variables
+- Detection: Contains `always_ff` blocks (and isn't an FSM or memory)
 - Visual: Light box with clock marker (◂)
 - Example: `counter`, `shift_register`, `pipeline_stage`
 
 ### 4. State Machine
 - Definition: Explicit FSM with enum state register
-- Detection: Enum type + case statement on state + transitions
+- Detection: an enum-typed signal is written by an `always_ff` block
 - Visual: State circles with labeled transitions
 - Example: `ctrl_fsm`, `read_write_controller`
 
 ### 5. Memory Block
 - Definition: Array-based storage with read/write logic
-- Detection: Array declarations + read/write port patterns
+- Detection: an unpacked-array signal is written by an `always_ff` block
 - Visual: Box with diagonal hatch pattern
 - Example: `ram_controller`, `cache_line_array`
 
@@ -154,9 +161,6 @@ Modules are classified into 6 mutually exclusive categories:
 
 ## Project Configuration
 
-### `.vscode/`
-VS Code settings for C++ debugging, build tasks, and launch configurations.
-
 ### `.claude/` & `.agents/`
 Claude Code configuration. Specifies skills, hooks, and agent behaviors for this project.
 
@@ -168,16 +172,19 @@ Git repository with clean history. Check recent commits via `git log` for contex
 ## Conventions
 
 ### Code Organization
-- **Parser**: Lexer → Token → AST → JSON serialization (standard compiler pipeline)
-- **Web**: One component per file, organized by feature (Editor, Diagram, D3Canvas)
-- **Types**: TypeScript types in `web/src/types/`, shared constants in `web/src/utils/`
+- **Server**: `schematex/extract.py` is the whole elaboration → JSON step; `app.py` is a thin HTTP wrapper
+- **Web**: one component per file (`Editor`, `Diagram`, `D3Canvas`); pure logic in `src/lib/`, with no React there
+- **Types**: TypeScript types in `web/src/types/`, which mirror the server JSON
 
 ### Testing
-- Parser tests in `parser/tests/` (separate from source)
-- Web tests to be added to `web/tests/` as coverage grows
+- **Design suite** (`tests/designs/`): 63 designs by category, each stating its expected type, wires, instance count and diagnostics in `// @expect-*` comments. See `tests/designs/README.md`. Add a design there whenever you fix a bug.
+- `server/tests/test_corpus.py` elaborates every suite design and checks its annotations. It also checks that every extracted reference resolves to a declared signal.
+- `web/src/lib/corpus.test.ts` lays out every level of every suite design (no overlaps, every wire routed) and checks `@expect-type` / `@expect-net`. It calls the Python extractor directly, so it needs `server/.venv`.
+- `server/tests/test_extract.py` and `web/src/lib/graph.test.ts` are focused unit tests on `examples/`. The web ones use `__fixtures__/`; regenerate those with `make fixtures`.
+- `make test` runs everything.
 
 ### Examples
-Teaching examples in `examples/` — simple to complex, one design per file.
+Teaching examples in `examples/`, simple to complex, one design per file. The web app loads them directly, so adding a `.sv` file there adds it to the dropdown.
 
 ---
 
@@ -185,18 +192,20 @@ Teaching examples in `examples/` — simple to complex, one design per file.
 
 1. Read [README.md](README.md) for quick start and project overview
 2. Understand the block type detection rules above
-3. Check `shared/ast-schema.json` to see the AST structure
-4. Run a simple example (e.g., `counter_4bit.sv`) and trace through the pipeline
+3. Run `python -m schematex ../examples/counter_4bit.sv` in `server/` to see the JSON
+4. Run `make dev` and trace the same example through `web/src/lib/`
 5. See `docs/adr/` for architectural decision records
 
 ---
 
-## Known Issues & Workarounds
+## Known Issues
 
-### Parser Hierarchical Timeout
-The C++ parser can hang on deeply nested hierarchical modules due to recursive traversal. 
-- **Workaround**: 10-second timeout + mock fallback in web app
-- **Status**: Documented in memory; consider fix in future refactor
+- **Unknown modules aren't drawn.** An instance of an undefined module produces a slang error and is omitted from the diagram. It should become a black box.
+- **Invalid expressions carry no wires.** If an expression has an error (e.g. an undeclared identifier), slang marks it invalid and the block loses those connections.
+- **Interfaces aren't wired.** Interface instances appear as boxes, but connections made through interface ports aren't drawn (`tests/designs/language/interface_bus.sv`).
+- **FSM detection needs an enum.** A state machine encoded with plain vectors (one-hot, localparam states) classifies as sequential (`tests/designs/fsm/onehot_fsm.sv`).
+- **A self-instantiating module is never a top.** A recursive module needs a wrapper to be drawn (`tests/designs/hierarchy/recursive_tree.sv`).
+- **Vite config precedence.** Vite loads `web/vite.config.js` before `vite.config.ts`. Keep only the `.ts` file; the tsconfig no longer emits a `.js` copy.
 
 ---
 

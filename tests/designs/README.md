@@ -32,4 +32,12 @@ Header comments state what each design should produce. A file without an `@expec
 | `@expect-net <from> -> <to>` | The top-level diagram has a wire from `from` to `to` | web |
 | `@expect-no-net <from> -> <to>` | The top-level diagram has no such wire | web |
 
-Endpoints are either a port of the top module (`clk`) or `<instance>.<port>`, where the instance name is as shown in the diagram (`g_bit[0].u_fa.cout`).
+Endpoints are one of:
+
+- a port of the top module: `clk`
+- an instance pin, `<instance>.<port>`, with the instance name as shown in the diagram: `g_bit[0].u_fa.cout`
+- a logic-block pin, `<kind>@<line>.<pin>`: `assign@24.carry[0]`, `always_ff@28.wr_ptr`
+
+Block pins are named after what the block touches, so a bit select shows up as `carry[0]` and an array element as `link[0][1]`.
+
+Line numbers in `@expect-diagnostic` and block endpoints are absolute, so they have to be updated when lines are added above them.

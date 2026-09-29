@@ -1,179 +1,108 @@
 # SchemaTeX
 
-**Interactive tool to visualize SystemVerilog RTL code as professional block diagrams.**
+**Interactive schematics from SystemVerilog RTL.**
 
-SchemaTeX automatically generates IEEE-standard hardware schematics from your Verilog code. Upload or paste RTL, get an interactive diagram showing module hierarchy, datapath connectivity, and signal flow.
+Paste or pick a design and SchemaTeX draws it as a block diagram: module ports on the edges, logic blocks and child instances as boxes, and every net routed between them. Double-click an instance to open it; click a wire to trace its net.
 
 ## Features
 
-- **Automatic Parsing**: Deterministic parser extracts instances, signals, and logic blocks from SystemVerilog
-- **Block Type Detection**: Intelligently classifies modules as hierarchical containers, combinational logic, sequential logic, state machines, memories, or mixed designs
-- **Interactive Diagrams**: 
-  - Zoom and pan for navigation
-  - Expand/collapse module hierarchy
-  - Click signals to trace datapath connectivity
-  - See signal names, widths, and types
-- **Professional Output**: IEEE 91-1984 standard styling with clean layout, no overlaps
-- **Fast & Deterministic**: Parse and render in < 5 seconds, no LLM guessing
+- **Real SystemVerilog front end.** Designs are parsed and elaborated by [slang](https://github.com/MikePopoloski/slang), so parameters, generate loops and hierarchy are resolved exactly as a compiler would, and errors are reported with line and column.
+- **Deterministic.** The diagram comes from the elaborated design, with no guessing (see [ADR 0002](docs/adr/0002-deterministic-parser-with-claude-abstraction.md)).
+- **Block type detection.** Modules are classified as hierarchical, mixed, state machine, memory, sequential or combinational.
+- **Interactive.** Zoom and pan, drill into instances with breadcrumbs back up, click-to-trace nets, clock and reset wires colour-coded, bus widths labelled.
 
-## Quick Start
+## Quick start
 
-### Web App (No Build Required)
+Requires Python 3.10+ and Node 18+.
 
 ```bash
+make setup   # create server/.venv and install web/node_modules
+make dev     # API on :3001, web app on http://localhost:3000
+```
+
+Or run the two halves yourself:
+
+```bash
+# Terminal 1: API server
+cd server
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+.venv/bin/uvicorn app:app --port 3001
+
+# Terminal 2: web app (proxies /api to the server)
 cd web
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser. Paste SystemVerilog code and click "Render".
+Set `SCHEMATEX_API=http://host:port` before `npm run dev` to point the web app at a server on another port.
 
-### Running the Parser Server
+## How it works
 
-The web app needs the parser HTTP API running:
+```
+SystemVerilog ──POST /api/parse──▶ server/  ──JSON──▶ web/
+                                   slang: parse       classify → build graph → ELK layout → D3 render
+                                   + elaborate
+```
+
+1. **Elaborate** (`server/schematex/extract.py`). pyslang compiles the source and walks the instance tree. For each instance it records ports, internal signals, logic blocks (the signals each `always_*`/`assign` reads, writes and is clocked by) and child instances with the parent signals bound to each port.
+2. **Classify** (`web/src/lib/classify.ts`). Each module gets one of the six block types.
+3. **Build graph** (`web/src/lib/graph.ts`). For the level being viewed, ports, blocks and instances become nodes, and each net becomes edges from its drivers to its sinks.
+4. **Lay out** (`web/src/lib/layout.ts`). ELK's layered algorithm places nodes left-to-right and routes wires orthogonally.
+5. **Render** (`web/src/components/D3Canvas.tsx`). D3 draws the SVG and handles zoom, selection and drill-down.
+
+To inspect the JSON for any file directly:
 
 ```bash
-cd parser
-cmake -B build
-cmake --build build
-./build/parser_server --port 3001
+cd server && .venv/bin/python -m schematex ../examples/processor.sv
 ```
 
-Or run it in the background:
-
-```bash
-cd parser/build && ./parser_server --port 3001 &
-```
-
-See [Parser Build Instructions](parser/BUILD_INSTRUCTIONS.md) for detailed setup.
-
-## Project Structure
+## Project structure
 
 ```
-SchemaTeX/
-├── README.md                 # This file
-├── CONTEXT.md               # Domain concepts & architecture (for Claude)
-│
-├── parser/                  # C++ SystemVerilog parser
-│   ├── src/                 # Parser source code
-│   ├── include/             # Header files
-│   ├── tests/               # Parser unit tests
-│   ├── CMakeLists.txt       # Build config
-│   └── BUILD_INSTRUCTIONS.md
-│
-├── web/                     # React web application
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── types/           # TypeScript type definitions
-│   │   ├── utils/           # Utility functions & constants
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── tests/               # Component and integration tests
-│   └── vite.config.ts
-│
-├── examples/                # Reference SystemVerilog files
-│   ├── counter_4bit.sv
-│   ├── counter_chain.sv
-│   ├── processor.sv
-│   └── ...
-│
-├── shared/                  # Shared data schemas
-│   └── ast-schema.json      # Parser output schema
-│
-└── docs/                    # Documentation
-    └── adr/                 # Architectural Decision Records
+├── server/                 # Python API: slang elaboration → JSON
+│   ├── schematex/          # extract.py (the core), CLI entry point
+│   ├── app.py              # FastAPI app: POST /api/parse
+│   └── tests/
+├── web/                    # React + TypeScript + D3 front end
+│   └── src/
+│       ├── components/     # Editor, Diagram panel, D3Canvas
+│       ├── lib/            # api, classify, graph, layout (+ tests)
+│       ├── types/          # Mirrors the server's JSON
+│       └── utils/          # Example loader
+├── examples/               # Sample designs, also loaded by the web app
+├── tests/designs/          # Design test suite with expectations, used by both test suites
+└── docs/adr/               # Architecture decision records
 ```
-
-## Configuration
-
-- `.vscode/` — VS Code settings (C++ debugging, tasks)
-- `.claude/` — Claude Code configuration and settings
-- `.agents/` — Agent skills and tools
-
-See CONTEXT.md for details on project conventions and how Claude sessions should navigate the codebase.
-
-## How It Works
-
-1. **Parse**: C++ parser reads SystemVerilog → extracts modules, ports, signals, instances → outputs JSON AST
-2. **Detect**: TypeScript layer classifies each module by type (combinational, sequential, FSM, etc.)
-3. **Layout**: ELK (Eclipse Layout Kernel) positions all elements, routes wires to minimize crossings
-4. **Render**: D3.js draws clean SVG diagram with interactive features
-
-## Technology Stack
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Parser | C++ | Extract AST from SystemVerilog |
-| Web App | React + TypeScript | UI and visualization |
-| Rendering | D3.js + SVG | Interactive diagrams |
-| Layout | ELK.js | Deterministic graph positioning |
-| Styling | Tailwind CSS | UI styling |
 
 ## Development
 
-### For Web Development
-
 ```bash
-cd web
-npm install
-npm run dev          # Start dev server
-npm run build        # Production build
-npm test             # Run tests (when available)
+make test                   # both suites
+cd server && .venv/bin/pytest
+cd web && npm test && npm run build
 ```
 
-### For Parser Development
+`tests/designs/` holds 63 SystemVerilog designs (combinational, sequential, FSMs, memories, hierarchy, language features, stress tests and deliberate errors). Each file states its expected module type, wires and diagnostics in `// @expect-*` comments, and both suites check every file (see [tests/designs/README.md](tests/designs/README.md)). The designs also appear under "Test suite" in the web app's example picker.
 
-```bash
-cd parser
-mkdir -p build && cd build
-cmake ..
-make -j4
-./parser_test  # Run test suite
-```
-
-See [BUILD_INSTRUCTIONS.md](parser/BUILD_INSTRUCTIONS.md) for details.
+The web unit tests use real server output stored in `web/src/lib/__fixtures__/`. After changing the extractor, regenerate them with `make fixtures`.
 
 ## Examples
 
-Load any of these in the web app to see SchemaTeX in action:
+| File | Shows |
+|------|-------|
+| `counter_4bit.sv` | Sequential logic with clocked and combinational blocks |
+| `mux_4to1.sv` | Pure combinational logic |
+| `traffic_light.sv` | Enum-based state machine |
+| `counter_chain.sv` | Hierarchy with bit-select connections (ripple clocking) |
+| `shift_register.sv` | Parameters and a generate loop |
+| `processor.sv` | Mixed hierarchy with memory and cache controllers |
 
-- **counter_4bit.sv** — Simple sequential counter (2-3 ports, 1 always_ff block)
-- **counter_chain.sv** — Hierarchical design with module instances
-- **processor.sv** — Complex multi-module system
-- **mux_4to1.sv** — Combinational logic example
+## Roadmap
 
-## Contributing
+- Show instances of undefined modules as black boxes
+- Show where an error is in the editor (highlight the line)
+- Export to SVG/PNG
+- Collapse large nets and bus rippers for big designs
+- Optional Claude-assisted "Simplify" view ([ADR 0002](docs/adr/0002-deterministic-parser-with-claude-abstraction.md))
 
-Contributions welcome! Areas of focus:
-
-- Extend parser to support more SystemVerilog features
-- Improve layout algorithm for larger designs
-- Add visualization features (highlighting, annotations, export)
-- Test coverage and performance optimization
-
-Before starting work, check [CONTEXT.md](CONTEXT.md) to understand the domain model and architecture.
-
-## Performance Targets
-
-- **Parse Time**: < 1 second
-- **Layout Time**: < 2 seconds
-- **Render Time**: < 500ms
-- **Total**: < 5 seconds for typical designs (up to 500 modules)
-
-## Future Enhancements
-
-- File upload and drag-and-drop
-- Project management (save/load diagrams)
-- Export to PNG, PDF, SVG
-- Signal timing annotations
-- Simulation integration
-- Custom rendering styles
-
-## License
-
-[Add license here]
-
-## Questions?
-
-See CONTEXT.md for a deep dive into the domain model, architecture, and key design decisions.
+See [CONTEXT.md](CONTEXT.md) for the domain model and design decisions.
